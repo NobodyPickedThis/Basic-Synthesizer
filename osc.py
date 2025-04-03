@@ -1,32 +1,7 @@
 import math
 import consts
 import numpy as np
-
-class RingBuffer:
-    def __init__(self, size):
-        self._size = size
-        self._data = [0] * size
-        self._index = 0
-        self._is_full = False
-        
-    def add(self, value):
-        self._data[self._index] = value
-        self._index = (self._index + 1) % self._size
-        if self._index == 0:
-            self._is_full = True
-            
-    def get(self):
-        if not self._is_full:
-            return self._data[:self._index]
-        return self._data[self._index:] + self._data[:self._index]
-        
-    def get_n(self, n):
-        data = self.get()
-        result = []
-        while len(result) < n:
-            result.extend(data)
-        return result[:n]
-    
+import Waveform_Visualizer
 
 class osc:
     def __init__(self, frequency = 200, wave_type = "Sine", amplitude: float = 1.0):
@@ -47,16 +22,23 @@ class osc:
     def getWavedata(self, n_samples: int = consts.BUFFER_SIZE) -> list:
         # Create enough samples to fill the requested buffer size
         samples = np.zeros(n_samples, dtype=float)
+        samples[0] = 0
         
         #Generate correct sample for specified parameters
-        for i in range(n_samples):
+        for i in range(1, n_samples):
             match self._wave_type:
                 case "Sine":
                     samples[i] = self._amplitude * math.sin(self._current_phase)
+
                 case "Square":
-                    pass
+                    if self._samples_per_period % i <= math.floor(self._samples_per_period / 2):
+                        samples[i] = self._amplitude
+                    else:
+                        samples[i] = -self._amplitude
+
                 case "Saw":
-                    pass
+                    samples[i] = self._amplitude - (2 * ((self._samples_per_period % i) / self._samples_per_period))
+
                 case _:
                     pass
 
@@ -69,3 +51,6 @@ class osc:
         samples_int16 = (samples * 32767).astype(np.int16)
         
         return samples_int16
+    
+    def draw_wave(self) -> None:
+        Waveform_Visualizer.drawWaveform(self._frequency, self.getWavedata(self._samples_per_period))
