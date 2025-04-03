@@ -1,18 +1,16 @@
 import pyaudio
-import math
-import pickle
+import osc
+import consts
 
 #Handles stream open, write, and close functionality
 class output:
 
     #Initialize pyaudio output stream
-    def __init__(self, debug_mode: int = 0, bitrate: int = 44100):
-        self._bitrate = bitrate
-        self._frames_per_buffer = 4096
+    def __init__(self, debug_mode: int = 0):
         self._p = pyaudio.PyAudio()     
         self._stream = None
         self._isPlaying = False
-        self._play_data = []
+        self._audio_data = None
         self._debug_mode = debug_mode #0 --- No debug outputs
                                       #1 --- Simple debug outputs
                                       #2 --- Verbose debug outputs
@@ -25,58 +23,41 @@ class output:
         self._p.terminate()
 
     #Write to output stream
-    def play(self):
+    def play(self, oscillator: osc.osc):
+
+        self._audio_data = oscillator
 
         # Define callback function that PyAudio will call when it needs more audio data
         def callback(in_data, frame_count, time_info, status):
 
             if self._debug_mode > 0:
-                print("Callback entered")
+                print("Callback entered, requesting", frame_count, "frames")
             
-            #Check whether or not output should continue!
-            if play_data is None:
+            if not self._isPlaying or self._audio_data is None:
                 if self._debug_mode > 0:
                     print("Callback exiting early:", end=" ")
-                    print("No data, None type received")
-                self._isPlaying = False
-                return (None, pyaudio.paComplete)
-
-            if not self._isPlaying:
-                if self._debug_mode > 0:
-                    print("Callback exiting early:", end=" ")
-                    print("Stream is turned off!")
+                    if not self._isPlaying:
+                        print("Stream is turned off!")
+                    else:
+                        print("No oscillator provided!")
                 self._isPlaying = False
                 return (None, pyaudio.paComplete)
 
             #Else continue to play the samples, converting np.array to bytes
-            out_data = pickle.dumps(play_data)
+            new_data = self._audio_data.getWavedata(frame_count)
+            out_data = bytes(new_data)
             if self._debug_mode > 0:
                 print("Callback complete")
             return (out_data, pyaudio.paContinue)
-
-        #Exit if no data
-        if len(self._play_data) <= 0:
-            if self._debug_mode > 0:
-                print("No data provided, stream will not be opened")
-            return
-        
-        if self._debug_mode > 0:
-            if self._debug_mode > 1:
-                print("WAVE_DATA BEFORE MATCHING FRAMES PER BUFFER:")
-                for x in self._play_data:
-                    print(x, end=" ")
-                print()
-            print("wave_data is", len(self._play_data), "total samples")
-            print()
 
         #Open new stream with callback
         self._stream = self._p.open(
             format=pyaudio.paInt8, 
             channels=1,
-            rate=self._bitrate,
+            rate=consts.BITRATE,
             output=True,
             stream_callback=callback,
-            frames_per_buffer=self._frames_per_buffer
+            frames_per_buffer=consts.BUFFER_SIZE
         )
         
         #Start the stream
@@ -106,7 +87,3 @@ class output:
         if self._stream is not None and not self._stream.is_active():
             self._isPlaying = False
         return self._isPlaying
-
-    #FIXME try out circular buffer! https://thingsdaq.org/2023/04/18/circular-buffer-in-python/
-    def populateData(self, new_data) -> None:
-        pass
