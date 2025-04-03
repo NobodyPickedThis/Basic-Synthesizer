@@ -52,7 +52,7 @@ class output:
 
         #Open new stream with callback
         self._stream = self._p.open(
-            format=pyaudio.paInt8, 
+            format=pyaudio.paInt16, 
             channels=1,
             rate=consts.BITRATE,
             output=True,

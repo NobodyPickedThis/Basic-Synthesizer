@@ -64,13 +64,8 @@ class osc:
             self._current_phase += (2 * math.pi * self._frequency) / consts.BITRATE
             if self._current_phase > 2 * math.pi:
                 self._current_phase -= 2 * math.pi
-
-        # Normalize to -1 to 1 range
-        max_val = np.max(np.abs(samples))
-        if max_val > 0:
-            samples = samples / max_val
             
-        # Convert to 8-bit audio (-128 to 127)
-        samples_int8 = (samples * 127).astype(np.int8)
+        # Convert to 16-bit audio
+        samples_int16 = (samples * 32767).astype(np.int16)
         
-        return samples_int8
+        return samples_int16
