@@ -3,7 +3,7 @@ import numpy as np
 import consts
 #import wave, sys
 
-def drawWaveform(FREQUENCY: int,  WAVEFORM: list) -> None:
+def drawWaveform(WAVEFORM: list) -> None:
     
     plt.close()
     plt.plot(WAVEFORM)

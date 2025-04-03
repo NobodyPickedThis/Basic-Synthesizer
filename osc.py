@@ -31,13 +31,13 @@ class osc:
                     samples[i] = self._amplitude * math.sin(self._current_phase)
 
                 case "Square":
-                    if self._samples_per_period % i <= math.floor(self._samples_per_period / 2):
-                        samples[i] = self._amplitude
+                    if i % self._samples_per_period <= math.floor(self._samples_per_period / 2):
+                        samples[i] = 1 * self._amplitude
                     else:
-                        samples[i] = -self._amplitude
+                        samples[i] = -1 * self._amplitude
 
                 case "Saw":
-                    samples[i] = self._amplitude - (2 * ((self._samples_per_period % i) / self._samples_per_period))
+                    samples[i] = self._amplitude - (2 * ((i % self._samples_per_period) / self._samples_per_period))
 
                 case _:
                     pass
@@ -53,4 +53,4 @@ class osc:
         return samples_int16
     
     def draw_wave(self) -> None:
-        Waveform_Visualizer.drawWaveform(self._frequency, self.getWavedata(self._samples_per_period))
+        Waveform_Visualizer.drawWaveform(self.getWavedata(self._samples_per_period))
