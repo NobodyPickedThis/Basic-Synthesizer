@@ -22,22 +22,21 @@ class osc:
     def getWavedata(self, n_samples: int = consts.BUFFER_SIZE) -> list:
         # Create enough samples to fill the requested buffer size
         samples = np.zeros(n_samples, dtype=float)
-        samples[0] = 0
         
         #Generate correct sample for specified parameters
-        for i in range(1, n_samples):
+        for i in range(0, n_samples):
             match self._wave_type:
                 case "Sine":
                     samples[i] = self._amplitude * math.sin(self._current_phase)
 
                 case "Square":
-                    if i % self._samples_per_period <= math.floor(self._samples_per_period / 2):
+                    if self._current_phase < math.pi:
                         samples[i] = 1 * self._amplitude
                     else:
                         samples[i] = -1 * self._amplitude
 
                 case "Saw":
-                    samples[i] = self._amplitude - (2 * ((i % self._samples_per_period) / self._samples_per_period))
+                    samples[i] = self._amplitude - (2 * (self._current_phase / (2 * math.pi)) - 1.0)
 
                 case _:
                     pass
@@ -54,3 +53,9 @@ class osc:
     
     def draw_wave(self) -> None:
         Waveform_Visualizer.drawWaveform(self.getWavedata(self._samples_per_period))
+
+    def print_wave(self) -> None:
+        print_list = self.getWavedata(self._samples_per_period)
+        for x in print_list:
+            print(x, end=" ")
+        print()

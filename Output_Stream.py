@@ -50,6 +50,10 @@ class output:
                 print("Callback complete")
             return (out_data, pyaudio.paContinue)
 
+        #Making sure no other stream is open
+        if self._stream is not None:
+            self._stream.close()
+
         #Open new stream with callback
         self._stream = self._p.open(
             format=pyaudio.paInt16, 
