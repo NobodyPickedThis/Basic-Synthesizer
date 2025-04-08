@@ -1,5 +1,5 @@
 import math
-import consts
+from lib import consts
 import numpy as np
 import Waveform_Visualizer
 

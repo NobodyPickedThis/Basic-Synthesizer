@@ -1,5 +1,5 @@
-import mtof
-import MIDI_input as MIDI
+from .. import mtof
+from .. import MIDI_input as MIDI
 import time
 
 #mtof calls:

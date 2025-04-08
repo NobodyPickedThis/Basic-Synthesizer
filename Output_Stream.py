@@ -1,6 +1,6 @@
 import pyaudio
 import osc
-import consts
+from lib import consts
 
 #Handles stream open, write, and close functionality
 class output:

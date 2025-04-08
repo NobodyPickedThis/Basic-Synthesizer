@@ -1,5 +1,5 @@
-import Output_Stream
-import osc
+from .. import Output_Stream
+from .. import osc
 import time
 import numpy as np
 

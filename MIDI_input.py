@@ -1,9 +1,10 @@
 import mido
-import mtof
+from lib import mtof
+from lib import consts
 
 #Handles input from MIDI devices, translating MIDI info into note-on, note-off, frequency, and velocity values
 class MIDI_device:
-    def __init__(self, device_name = None):
+    def __init__(self, device_name = consts.DEVICE_NAME):
         self._device_name = device_name
         self._input = None
         self.connectController()

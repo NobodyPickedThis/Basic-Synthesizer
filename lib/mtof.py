@@ -1,4 +1,3 @@
-
 #Calculation function, can call when latency isn't first priority
 def mtof_calc(MIDI: int = -1) -> float: #default to A0
     

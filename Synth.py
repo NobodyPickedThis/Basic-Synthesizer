@@ -3,9 +3,7 @@ import Output_Stream
 import osc
 #import ADSR
 #import filter
-import consts
-
-DEVICE_NAME = 'MPKmini2'
+from lib import consts
 
 
 
@@ -18,7 +16,7 @@ DEVICE_NAME = 'MPKmini2'
 class Synth(MIDI.MIDI_device):
     def __init__(self, debug_mode: int = 0, amplitude: float = 1.0):
         
-        super().__init__(DEVICE_NAME)
+        super().__init__(consts.DEVICE_NAME)
         
         self._debug_mode = debug_mode #0 --- No debug outputs
                                       #1 --- Simple debug outputs
@@ -28,7 +26,7 @@ class Synth(MIDI.MIDI_device):
         self._output = Output_Stream.output()
 
         #Connect to device
-        self._MIDI_device = MIDI.MIDI_device(DEVICE_NAME)
+        self._MIDI_device = MIDI.MIDI_device(consts.DEVICE_NAME)
 
         #Signal generation and processing components
         self._amplitude = amplitude
