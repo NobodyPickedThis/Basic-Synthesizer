@@ -7,4 +7,3 @@ def drawWaveform(WAVEFORM: list) -> None:
     plt.ion()
     plt.show()
     plt.pause(0.001)
-
