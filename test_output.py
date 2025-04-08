@@ -1,9 +1,7 @@
 import Output_Stream
 import osc
 import time
-import MIDI_input as MIDI
 import numpy as np
-import consts
 
 #Arg indicates debug mode: 0 = off, 1 = simple, 2 = verbose
 test_out = Output_Stream.output(0)
@@ -44,9 +42,7 @@ def test_saw(test_out: Output_Stream.output):
     test_out.stop()
     time.sleep(0.5)
 
-#TEST CALLS
+#===========TEST CALLS===========
 #test_sine(test_out)
 #test_square(test_out)
 #test_saw(test_out)
-
-test_MIDI = MIDI.test_MIDI()

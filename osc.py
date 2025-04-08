@@ -4,11 +4,10 @@ import numpy as np
 import Waveform_Visualizer
 
 class osc:
-    def __init__(self, frequency = 200, wave_type = "Sine", amplitude: float = 1.0):
+    def __init__(self, frequency: float = 200.0, wave_type = "Sine"):
         #User defined parameters
         self._frequency = frequency
         self._wave_type = wave_type
-        self._amplitude = amplitude
         self._bitrate = consts.BITRATE
 
         #Track phase for smooth audio between callback calls
@@ -27,16 +26,16 @@ class osc:
         for i in range(0, n_samples):
             match self._wave_type:
                 case "Sine":
-                    samples[i] = self._amplitude * math.sin(self._current_phase)
+                    samples[i] = math.sin(self._current_phase)
 
                 case "Square":
                     if self._current_phase < math.pi:
-                        samples[i] = 1 * self._amplitude
+                        samples[i] = 1
                     else:
-                        samples[i] = -1 * self._amplitude
+                        samples[i] = -1
 
                 case "Saw":
-                    samples[i] = self._amplitude - (2 * (self._current_phase / (2 * math.pi)) - 1.0)
+                    samples[i] = 1 - (2 * (self._current_phase / (2 * math.pi)) - 1.0)
 
                 case _:
                     pass
@@ -59,3 +58,9 @@ class osc:
         for x in print_list:
             print(x, end=" ")
         print()
+
+    def update_wave(self, new_frequency: float = -1.0, new_wave_type = "Empty"):
+        if not math.isclose(new_frequency, -1.0, rel_tol=1e-5):
+            self._frequency = new_frequency
+        if new_wave_type != "Empty":
+            self._wave_type = new_wave_type

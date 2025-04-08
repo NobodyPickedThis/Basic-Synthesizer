@@ -1,29 +1,41 @@
-import pygame.midi as MIDI
-import string
+import mido
+import mtof
 
 #Handles input from MIDI devices, translating MIDI info into note-on, note-off, frequency, and velocity values
-class MIDI_Device:
-    def __init__(self):
-        MIDI.init()
-        self._controllerID = self.ConnectController()
+class MIDI_device:
+    def __init__(self, device_name = None):
+        self._device_name = device_name
+        self._input = None
+        self.connectController()
+        self._mtof = mtof.mtof()
 
+    #Handle incoming messages using callback
+    def handleMessage(self, message):
+        self.processMIDI(message)
 
-    def __del__(self):
-        MIDI.quit()
+    def close(self):
+        if self._input:
+            self._input.close()
 
-    def connectController(self) -> string:
-        return 
+    #Find the correct device if possible    
+    def connectController(self) -> bool:
+        matching_ports = [port for port in mido.get_input_names() if self._device_name in port]
+        if matching_ports:
+            self._input = mido.open_input(matching_ports[0], callback=self.handleMessage)
+            return True
+        else:
+            raise ValueError("No connected devices matching", self._device_name)
+        
+    #For parent class, this function just prints the MIDI information.
+    #See the Synth subclass implementation for actual usasge
+    def processMIDI(self, message: mido.Message = None):
 
-
-
-class test_MIDI:
-    def __init__(self):
-        MIDI.init()
-        self.printAllMIDIDevices()
-
-    def __del__(self):
-        MIDI.quit()
-
-    def printAllMIDIDevices(self):
-        for i in range(MIDI.get_count()):
-            print(MIDI.get_device_info(i), i)
+        if message == None:
+            raise TypeError("processMIDI got None (expected mido.Message)")
+        
+        if message.type == 'note_on':
+            print(f"Note ON: {message.note}, Velocity: {message.velocity}")
+        elif message.type == 'note_off':
+            print(f"Note OFF: {message.note}, Velocity: {message.velocity}")
+        elif message.type == 'control_change':
+            print(f"Control Change: {message.control}, Value: {message.value}")

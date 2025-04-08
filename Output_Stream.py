@@ -30,16 +30,18 @@ class output:
         # Define callback function that PyAudio will call when it needs more audio data
         def callback(in_data, frame_count, time_info, status):
 
-            if self._debug_mode > 0:
-                print("Callback entered, requesting", frame_count, "frames")
+            #Commented out for performance within callback
+            #if self._debug_mode > 0:
+            #    print("Callback entered, requesting", frame_count, "frames")
             
             if not self._isPlaying or self._audio_data is None:
-                if self._debug_mode > 0:
-                    print("Callback exiting early:", end=" ")
-                    if not self._isPlaying:
-                        print("Stream is turned off!")
-                    else:
-                        print("No oscillator provided!")
+            #    Commented out for performance within callback
+            #    if self._debug_mode > 0:
+            #        print("Callback exiting early:", end=" ")
+            #        if not self._isPlaying:
+            #            print("Stream is turned off!")
+            #        else:
+            #            print("No oscillator provided!")
                 self._isPlaying = False
                 return (None, pyaudio.paComplete)
 
