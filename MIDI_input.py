@@ -7,12 +7,23 @@ class MIDI_device:
     def __init__(self, device_name = consts.DEVICE_NAME):
         self._device_name = device_name
         self._input = None
-        self.connectController()
+        self._device_is_connected = self.connectController()
         self._mtof = mtof.mtof()
 
     #Handle incoming messages using callback
+    #For parent class, this function just prints the MIDI information.
+    #See the Synth subclass implementation for actual usasge
     def handleMessage(self, message):
-        self.processMIDI(message)
+        print("Callback entered")
+        if message == None:
+            raise TypeError("processMIDI got None (expected mido.Message)")
+        
+        if message.type == 'note_on':
+            print(f"Note ON: {message.note}, Velocity: {message.velocity}")
+        elif message.type == 'note_off':
+            print(f"Note OFF: {message.note}, Velocity: {message.velocity}")
+        elif message.type == 'control_change':
+            print(f"Control Change: {message.control}, Value: {message.value}")
 
     def close(self):
         if self._input:
@@ -25,18 +36,9 @@ class MIDI_device:
             self._input = mido.open_input(matching_ports[0], callback=self.handleMessage)
             return True
         else:
-            raise ValueError("No connected devices matching", self._device_name)
-        
-    #For parent class, this function just prints the MIDI information.
-    #See the Synth subclass implementation for actual usasge
-    def processMIDI(self, message: mido.Message = None):
+            return False
 
-        if message == None:
-            raise TypeError("processMIDI got None (expected mido.Message)")
-        
-        if message.type == 'note_on':
-            print(f"Note ON: {message.note}, Velocity: {message.velocity}")
-        elif message.type == 'note_off':
-            print(f"Note OFF: {message.note}, Velocity: {message.velocity}")
-        elif message.type == 'control_change':
-            print(f"Control Change: {message.control}, Value: {message.value}")
+    #FIXME debug
+    def printAllMIDIDevices(self):
+        for device in mido.get_input_names():
+            print(device)
