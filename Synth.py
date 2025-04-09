@@ -7,7 +7,6 @@ from lib import mtof
 from lib import consts
 
 
-
 #"Hub" class, defines signal flow up until Output_Stream
 #   -IS A MIDI_device object
 #   -HAS A(N) oscillator (osc)
@@ -36,16 +35,17 @@ class Synth(MIDI.MIDI_device):
         self._mtof = mtof.mtof()
         self._mton = mtof.mton()
 
-
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
 
+        #Comment out to improve performance
         if self._debug_mode > 0:
             print("Callback entered")
 
         #Update oscillator based on new frequency and trigger ADSR start
+        #FIXME when ADSR exists, this is a hack
         if message.type == 'note_on' and self._mtof[message.note]:
-
+            #Comment out to improve performance
             if self._debug_mode > 0:
                 print(f"Note ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
             
@@ -53,14 +53,15 @@ class Synth(MIDI.MIDI_device):
 
             #FIXME trigger ADSR, calling the output directly is temporary! (Will require small
             #refactor. For example, passing the entire osc object seems wrong to me)
+            self._output._isPlaying = True
             self._output.play(self._osc)
 
         #Trigger ADSR release
-        #FIXME when ADSR exists
+        #FIXME when ADSR exists, this is a hack
         elif message.type == 'note_off':
             if self._debug_mode > 0:
                 print(f"Note OFF --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
-            self._output.stop()
+            self._output._isPlaying = False
 
         #FIXME outside of scope for now, but maybe worth looking into later
         #(map parameters to MIDI CC rather than a GUI...?)
