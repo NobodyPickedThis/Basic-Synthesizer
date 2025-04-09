@@ -1,24 +1,33 @@
 import math
 from lib import consts
+from lib import mtof
 import numpy as np
 import Waveform_Visualizer
 
 class osc:
-    def __init__(self, frequency: float = 200.0, wave_type = "Sine"):
-        #User defined parameters
-        self._frequency = frequency
+    def __init__(self, wave_type = "Sine"):
+
+        #Constant parameters
         self._wave_type = wave_type
-        self._bitrate = consts.BITRATE
+
+        #Dictionary to hold wavedata
+        self._bank = dict()
+        self._mtof = mtof.mtof()
 
         #Track phase for smooth audio between callback calls
         self._current_phase = 0
 
-        #Generate wavedata
-        self._period = float(1.0 / self._frequency)
-        self._samples_per_period = int(math.floor(self._period * self._bitrate))
+        #Initialize wavedata
+        for i in range(21, 109):
+            frequency = self._mtof[i]
+            period = float(1.0 / frequency)
+            samples_per_period = int(math.floor(period * consts.BITRATE))
+            self._bank[i] = self.generateWavedata(samples_per_period, frequency, i)
+
 
     #Generate phase-continuous samples
-    def getWavedata(self, n_samples: int = consts.BUFFER_SIZE) -> list:
+    def generateWavedata(self, n_samples: int = consts.BUFFER_SIZE, frequency: float = 200.00, MIDI: int = 0) -> list:
+        
         # Create enough samples to fill the requested buffer size
         samples = np.zeros(n_samples, dtype=float)
         
@@ -41,25 +50,38 @@ class osc:
                     pass
 
             #Advance phase, keep within reasonable range
-            self._current_phase += (2 * math.pi * self._frequency) / consts.BITRATE
+            self._current_phase += (2 * math.pi * frequency) / consts.BITRATE
             if self._current_phase > 2 * math.pi:
                 self._current_phase -= 2 * math.pi
+
             
         # Convert to 16-bit audio
         samples_int16 = (samples * 32767).astype(np.int16)
         
         return samples_int16
     
-    def draw_wave(self) -> None:
+    #Return enough samples to fill the buffer size
+    def __getitem__(self, MIDI_value) -> list:
+        return_data = np.repeat(self._bank[MIDI_value], np.size(self._bank[MIDI_value]) / consts.BUFFER_SIZE)
+
+        #Update phase: ratio of remainder after filling return data to samples per period, scaled from 0 to 2pi
+        #FIXME check math and debug, I gotta go to work
+        self._current_phase += ((np.size(self._bank[MIDI_value]) % consts.BUFFER_SIZE) / int(math.floor((1 / self._mtof[MIDI_value]) * consts.BITRATE))) * 2 * math.pi
+        if self._current_phase > 2 * math.pi:
+            self._current_phase -= 2 * math.pi
+
+        return return_data
+    
+    def drawWave(self) -> None:
         Waveform_Visualizer.drawWaveform(self.getWavedata(self._samples_per_period))
 
-    def print_wave(self) -> None:
+    def printWave(self) -> None:
         print_list = self.getWavedata(self._samples_per_period)
         for x in print_list:
             print(x, end=" ")
         print()
 
-    def update_wave(self, new_frequency: float = -1.0, new_wave_type = "Empty"):
+    def updateWave(self, new_frequency: float = -1.0, new_wave_type = "Empty"):
         if not math.isclose(new_frequency, -1.0, rel_tol=1e-5):
             self._frequency = new_frequency
         if new_wave_type != "Empty":

@@ -40,7 +40,7 @@ class Synth(MIDI.MIDI_device):
 
         #Comment out to improve performance
         if self._debug_mode > 0:
-            print("Callback entered")
+            print("Synth MIDI Callback entered")
 
         #Update oscillator based on new frequency and trigger ADSR start
         #FIXME when ADSR exists, this is a hack
@@ -48,13 +48,11 @@ class Synth(MIDI.MIDI_device):
             #Comment out to improve performance
             if self._debug_mode > 0:
                 print(f"Note ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
-            
-            self._osc.update_wave(self._mtof[message.note])
 
             #FIXME trigger ADSR, calling the output directly is temporary! (Will require small
             #refactor. For example, passing the entire osc object seems wrong to me)
             self._output._isPlaying = True
-            self._output.play(self._osc)
+            self._output.play(self._osc[message.note])
 
         #Trigger ADSR release
         #FIXME when ADSR exists, this is a hack

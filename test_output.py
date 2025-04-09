@@ -10,8 +10,8 @@ test_out = Output_Stream.output(0)
 def test_sine(test_out: Output_Stream.output):
     sine_osc = osc.osc(200, "Sine")
     if test_out._debug_mode > 1:
-        sine_osc.print_wave()
-    sine_osc.draw_wave()
+        sine_osc.printWave()
+    sine_osc.drawWave()
     time.sleep(1)
     test_out.play(sine_osc)
     time.sleep(1)
@@ -22,8 +22,8 @@ def test_sine(test_out: Output_Stream.output):
 def test_square(test_out: Output_Stream.output):
     square_osc = osc.osc(200, "Square")
     if test_out._debug_mode > 1:
-        square_osc.print_wave()
-    square_osc.draw_wave()
+        square_osc.printWave()
+    square_osc.drawWave()
     time.sleep(1)
     test_out.play(square_osc)
     time.sleep(1)
@@ -34,8 +34,8 @@ def test_square(test_out: Output_Stream.output):
 def test_saw(test_out: Output_Stream.output):
     saw_osc = osc.osc(200, "Saw")
     if test_out._debug_mode > 1:
-        saw_osc.print_wave()
-    saw_osc.draw_wave()
+        saw_osc.printWave()
+    saw_osc.drawWave()
     time.sleep(1)
     test_out.play(saw_osc)
     time.sleep(1)

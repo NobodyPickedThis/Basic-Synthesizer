@@ -14,7 +14,7 @@ class MIDI_device:
     #For parent class, this function just prints the MIDI information.
     #See the Synth subclass implementation for actual usasge
     def handleMessage(self, message):
-        print("Callback entered")
+        print("Base Class MIDI Callback entered")
         if message == None:
             raise TypeError("processMIDI got None (expected mido.Message)")
         
