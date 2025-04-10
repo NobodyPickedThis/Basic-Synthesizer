@@ -42,12 +42,17 @@ class output:
                 return(self._silence, pyaudio.paContinue)
                 
             #Sum all active notes
-            new_data = wave_data[self._MIDI_values[0]]
-            for i in range(len(self._MIDI_values)):
-                new_data = list(map(add, new_data, wave_data[self._MIDI_values[i]]))
+            voices = len(self._MIDI_values)
+            new_data = np.zeros(consts.BUFFER_SIZE)
+            for i in range(voices):
+                new_data = np.array(list(map(add, new_data, wave_data[self._MIDI_values[i]])))
             #Normalize
-            new_data = np.array(new_data)
-            new_data = new_data // len(self._MIDI_values)
+            new_data = ((new_data - np.min(new_data)) / (np.max(new_data) - np.min(new_data))) * 256
+
+            #FIXME debugging polyphony algorithm
+            if self._debug_mode > 1:
+                print(max(new_data), min(new_data))
+                print(new_data[0:10])
 
             #Convert to bytes
             out_data = bytes(new_data)
