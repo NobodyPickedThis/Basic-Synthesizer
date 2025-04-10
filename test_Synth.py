@@ -15,7 +15,8 @@ import time
 
 #Synth calls
 test_Synth = Synth.Synth("Saw", 2)
-test_Synth.printAllMIDIDevices()
+#test_Synth.printAllMIDIDevices()
+#test_Synth.printSoundBank()
 
 print("Connected to MIDI input:", test_Synth._device_is_connected)
 

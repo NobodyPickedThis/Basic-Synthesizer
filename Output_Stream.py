@@ -2,6 +2,7 @@ import pyaudio
 import osc
 from lib import consts
 import numpy as np
+from operator import add
 
 #Handles stream open, write, and close functionality
 class output:
@@ -10,13 +11,13 @@ class output:
     def __init__(self, debug_mode: int = 0):
         self._p = pyaudio.PyAudio()     
         self._stream = None
-        self._isPlaying = False
         self._audio_data = None
         self._debug_mode = debug_mode #0 --- No debug outputs
                                       #1 --- Simple debug outputs
                                       #2 --- Verbose debug outputs
 
-        self._silence = np.zeros(consts.BUFFER_SIZE, np.int16)
+        self._silence = bytes(np.zeros(consts.BUFFER_SIZE, np.int16))
+        self._MIDI_values = []
         
     #Don't leave the stream open!
     def __del__(self):
@@ -26,18 +27,28 @@ class output:
         self._p.terminate()
 
     #Write to output stream
-    def play(self, wave_bank: osc.osc = None, MIDI_value: int = 0):
+    def play(self, wave_data, MIDI_value: int = 0):
+
+        if MIDI_value > 0:
+            self._MIDI_values.append(MIDI_value)
+        elif MIDI_value < 0:
+            self._MIDI_values.remove(abs(MIDI_value))
 
         # Define callback function that PyAudio will call when it needs more audio data
         def callback(in_data, frame_count, time_info, status):
             
-            #Assume data has been given
-            new_data = wave_bank[self._current_MIDI]
-            
-            #If it hasn't (or flag is off) set to silence
-            if not self._isPlaying or wave_bank is None:
-                new_data = self._silence
+            #If no notes should play (or flag is off) set to silence
+            if not wave_data or not self._MIDI_values:
+                return(self._silence, pyaudio.paContinue)
                 
+            #Sum all active notes
+            new_data = wave_data[self._MIDI_values[0]]
+            for i in range(len(self._MIDI_values)):
+                new_data = list(map(add, new_data, wave_data[self._MIDI_values[i]]))
+            #Normalize
+            new_data = np.array(new_data)
+            new_data = new_data // len(self._MIDI_values)
+
             #Convert to bytes
             out_data = bytes(new_data)
             return (out_data, pyaudio.paContinue)
@@ -53,10 +64,8 @@ class output:
                 frames_per_buffer=consts.BUFFER_SIZE
             )
         
-        #Start the stream
-        self._stream.start_stream()
-        self._isPlaying = True
-        self._current_MIDI = MIDI_value
+            #Start the stream
+            self._stream.start_stream()
 
     #Close stream
     def stop(self):
@@ -67,10 +76,3 @@ class output:
             self._stream.stop_stream()
             self._stream.close()
             self._stream = None
-        self._isPlaying = False
-
-    def isPlaying(self) -> bool:
-        # Also check if stream is active
-        if self._stream is not None and not self._stream.is_active():
-            self._isPlaying = False
-        return self._isPlaying

@@ -1,8 +1,11 @@
+import numpy as np
+
 import MIDI_input as MIDI
 import Output_Stream
 import osc
 #import ADSR
 #import filter
+
 from lib import mtof
 from lib import consts
 
@@ -25,9 +28,10 @@ class Synth(MIDI.MIDI_device):
         #Initialize output stream
         self._output = Output_Stream.output(self._debug_mode)
 
-        #Signal generation and processing components
+        #========Signal generation and processing components========
         self._amplitude = amplitude
-        self._osc = osc.osc(wave_type)   #FIXME add parametric constructor support from midi CC
+        self._soundbank = osc.osc(wave_type)        #Wave data for all frequencies
+
         #self._envelope = ADSR.ADSR()
         #self._filter = filter.filter() #FIXME implement
 
@@ -51,18 +55,22 @@ class Synth(MIDI.MIDI_device):
 
             #FIXME trigger ADSR, calling the output directly is temporary! (Will require small
             #refactor. For example, passing the entire osc object seems wrong to me)
-            self._output._isPlaying = True
-            self._output.play(self._osc, message.note)
+            self._output.play(self._soundbank, message.note)
 
         #Trigger ADSR release
         #FIXME when ADSR exists, this is a hack
         elif message.type == 'note_off':
             #if self._debug_mode > 0:
             #    print(f"Note OFF --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
-            self._output._isPlaying = False
+            self._output.play(self._soundbank, - message.note)
+
 
         #FIXME outside of scope for now, but maybe worth looking into later
         #(map parameters to MIDI CC rather than a GUI...?)
         elif message.type == 'control_change':
             if self._debug_mode > 1:
                 print(f"Control Change: {message.control}, Value: {message.value}")
+
+    def printSoundBank(self):
+        for i in range(21, 109):
+            print(self._mton[i], ": [", self._soundbank[i][:10], " ...]", sep="")

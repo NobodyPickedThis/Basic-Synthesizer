@@ -61,11 +61,11 @@ class osc:
                 generation_phase -= 2 * math.pi
             
         # Convert to 16-bit audio
-        samples_int16 = (samples * 32767).astype(np.int16)
+        samples_int16 = (samples * 32767).astype(np.int16) + 2      #Offset so that first sample is 0
         return samples_int16
     
     #Return enough samples to fill the buffer size
-    def __getitem__(self, MIDI_value) -> list:
+    def __getitem__(self, MIDI_value) -> np.array:
 
         #Fetch data and phase for the required note
         wave = self._bank[MIDI_value]
