@@ -9,20 +9,22 @@ class osc:
 
         #Constant parameters
         self._wave_type = wave_type
-
-        #Dictionary to hold wavedata
-        self._bank = dict()
         self._mtof = mtof.mtof()
 
-        #Track phase for smooth audio between callback calls
-        self._current_phase = 0
+        #Dictionary to hold wave and phase data
+        self._bank = dict()
+        self._current_positions = dict()
 
         #Initialize wavedata
         for i in range(21, 109):
             frequency = self._mtof[i]
-            period = float(1.0 / frequency)
-            samples_per_period = int(math.floor(period * consts.BITRATE))
+            samples_per_period = int(round(consts.BITRATE / frequency))
+
+            #Generate 4 periods per note
             self._bank[i] = self.generateWavedata(samples_per_period, frequency, i)
+
+            #Initialize each wave's position
+            self._current_positions[i] = 0
 
 
     #Generate phase-continuous samples
@@ -30,59 +32,75 @@ class osc:
         
         # Create enough samples to fill the requested buffer size
         samples = np.zeros(n_samples, dtype=float)
+
+        #NOT the position as used for audio output, this tracks generation progress
+        generation_phase = 0.0
         
         #Generate correct sample for specified parameters
         for i in range(0, n_samples):
+
             match self._wave_type:
                 case "Sine":
-                    samples[i] = math.sin(self._current_phase)
+                    samples[i] = math.sin(generation_phase)
 
                 case "Square":
-                    if self._current_phase < math.pi:
+                    if generation_phase < math.pi:
                         samples[i] = 1
                     else:
                         samples[i] = -1
 
                 case "Saw":
-                    samples[i] = 1 - (2 * (self._current_phase / (2 * math.pi)) - 1.0)
+                    samples[i] = 1 - (2 * (generation_phase / (2 * math.pi)) - 1.0)
 
                 case _:
                     pass
 
-            #Advance phase, keep within reasonable range
-            self._current_phase += (2 * math.pi * frequency) / consts.BITRATE
-            if self._current_phase > 2 * math.pi:
-                self._current_phase -= 2 * math.pi
-
+            #Advance phase, keep within reasonable range FIXME is the range adjustment necessary?
+            generation_phase += (2 * math.pi * frequency) / consts.BITRATE
+            if generation_phase > 2 * math.pi:
+                generation_phase -= 2 * math.pi
             
         # Convert to 16-bit audio
         samples_int16 = (samples * 32767).astype(np.int16)
-        
         return samples_int16
     
     #Return enough samples to fill the buffer size
     def __getitem__(self, MIDI_value) -> list:
-        return_data = np.repeat(self._bank[MIDI_value], np.size(self._bank[MIDI_value]) / consts.BUFFER_SIZE)
 
-        #Update phase: ratio of remainder after filling return data to samples per period, scaled from 0 to 2pi
-        #FIXME check math and debug, I gotta go to work
-        self._current_phase += ((np.size(self._bank[MIDI_value]) % consts.BUFFER_SIZE) / int(math.floor((1 / self._mtof[MIDI_value]) * consts.BITRATE))) * 2 * math.pi
-        if self._current_phase > 2 * math.pi:
-            self._current_phase -= 2 * math.pi
+        #Fetch data and phase for the required note
+        wave = self._bank[MIDI_value]
+        period = len(wave)
+        position = self._current_positions[MIDI_value]
 
-        return return_data
+        #Initialise output buffer
+        output = np.zeros(consts.BUFFER_SIZE, np.int16)
+
+        #Track position within output buffer and number of samples still to populate
+        output_position = 0
+        remaining = consts.BUFFER_SIZE
+
+        #Populate output buffer while it isn't full
+        while remaining > 0:
+            #Number of samples that can be populated at once, rather than one at a time
+            chunk_size = min(period - position, remaining)
+            output[output_position : output_position + chunk_size] = wave[position : position + chunk_size]
+
+            #Update all position trackers
+            output_position += chunk_size
+            position = (position + chunk_size) % period
+            remaining -= chunk_size
+
+        #Remember current position!
+        self._current_positions[MIDI_value] = position
+
+        #Send buffer
+        return output
     
     def drawWave(self) -> None:
-        Waveform_Visualizer.drawWaveform(self.getWavedata(self._samples_per_period))
+        Waveform_Visualizer.drawWaveform(self._bank[60])
 
     def printWave(self) -> None:
         print_list = self.getWavedata(self._samples_per_period)
         for x in print_list:
             print(x, end=" ")
         print()
-
-    def updateWave(self, new_frequency: float = -1.0, new_wave_type = "Empty"):
-        if not math.isclose(new_frequency, -1.0, rel_tol=1e-5):
-            self._frequency = new_frequency
-        if new_wave_type != "Empty":
-            self._wave_type = new_wave_type

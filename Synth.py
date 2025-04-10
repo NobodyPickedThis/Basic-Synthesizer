@@ -14,7 +14,7 @@ from lib import consts
 #   -         Filter (Filter)
 #
 class Synth(MIDI.MIDI_device):
-    def __init__(self, debug_mode: int = 0, amplitude: float = 1.0):
+    def __init__(self, wave_type: str = "Sine", debug_mode: int = 0, amplitude: float = 1.0):
         
         super().__init__(consts.DEVICE_NAME)
         
@@ -27,7 +27,7 @@ class Synth(MIDI.MIDI_device):
 
         #Signal generation and processing components
         self._amplitude = amplitude
-        self._osc = osc.osc()   #FIXME add parametric constructor support
+        self._osc = osc.osc(wave_type)   #FIXME add parametric constructor support from midi CC
         #self._envelope = ADSR.ADSR()
         #self._filter = filter.filter() #FIXME implement
 
@@ -39,26 +39,26 @@ class Synth(MIDI.MIDI_device):
     def handleMessage(self, message):
 
         #Comment out to improve performance
-        if self._debug_mode > 0:
-            print("Synth MIDI Callback entered")
+        #if self._debug_mode > 0:
+        #    print("Synth MIDI Callback entered")
 
         #Update oscillator based on new frequency and trigger ADSR start
         #FIXME when ADSR exists, this is a hack
         if message.type == 'note_on' and self._mtof[message.note]:
             #Comment out to improve performance
-            if self._debug_mode > 0:
-                print(f"Note ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
+            #if self._debug_mode > 0:
+            #    print(f"Note ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
 
             #FIXME trigger ADSR, calling the output directly is temporary! (Will require small
             #refactor. For example, passing the entire osc object seems wrong to me)
             self._output._isPlaying = True
-            self._output.play(self._osc[message.note])
+            self._output.play(self._osc, message.note)
 
         #Trigger ADSR release
         #FIXME when ADSR exists, this is a hack
         elif message.type == 'note_off':
-            if self._debug_mode > 0:
-                print(f"Note OFF --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
+            #if self._debug_mode > 0:
+            #    print(f"Note OFF --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
             self._output._isPlaying = False
 
         #FIXME outside of scope for now, but maybe worth looking into later
