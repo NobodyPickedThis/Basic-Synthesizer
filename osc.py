@@ -28,16 +28,16 @@ class osc:
 
 
     #Generate phase-continuous samples
-    def generateWavedata(self, n_samples: int = consts.BUFFER_SIZE, frequency: float = 200.00, MIDI: int = 0) -> list:
+    def generateWavedata(self, num_samples: int = consts.BUFFER_SIZE, frequency: float = 200.00, MIDI: int = 0) -> list:
         
         # Create enough samples to fill the requested buffer size
-        samples = np.zeros(n_samples, dtype=float)
+        samples = np.zeros(num_samples, dtype=float)
 
         #NOT the position as used for audio output, this tracks generation progress
         generation_phase = 0.0
         
         #Generate correct sample for specified parameters
-        for i in range(0, n_samples):
+        for i in range(0, num_samples):
 
             match self._wave_type:
                 case "Sine":

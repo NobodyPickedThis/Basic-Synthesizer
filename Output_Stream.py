@@ -16,8 +16,6 @@ class output:
                                       #1 --- Simple debug outputs
                                       #2 --- Verbose debug outputs
 
-        self._silence = bytes(np.zeros(consts.BUFFER_SIZE, np.int16))
-        self._MIDI_values = []
         
     #Don't leave the stream open!
     def __del__(self):
@@ -27,33 +25,18 @@ class output:
         self._p.terminate()
 
     #Write to output stream
-    def play(self, wave_data, MIDI_value: int = 0):
-
-        if MIDI_value > 0:
-            self._MIDI_values.append(MIDI_value)
-        elif MIDI_value < 0:
-            self._MIDI_values.remove(abs(MIDI_value))
+    def play(self, wave_data: np.array):
 
         # Define callback function that PyAudio will call when it needs more audio data
         def callback(in_data, frame_count, time_info, status):
-            
-            #If no notes should play (or flag is off) set to silence
-            if not wave_data or not self._MIDI_values:
-                return(self._silence, pyaudio.paContinue)
-                
-            #Sum all active notes
-            voices = len(self._MIDI_values)
-            new_data = np.zeros(consts.BUFFER_SIZE)
-            for i in range(voices):
-                new_data = np.array(list(map(add, new_data, wave_data[self._MIDI_values[i]])))
-            #Normalize
-            new_data = ((new_data - np.min(new_data)) / (np.max(new_data) - np.min(new_data))) * 256
+          
+            new_data = wave_data
 
             #FIXME debugging polyphony algorithm
-            if self._debug_mode > 1:
-                print(max(new_data), min(new_data))
-                print(new_data[0:10])
-
+            #if self._debug_mode > 1:
+            #    print(max(new_data), min(new_data))
+            #    print(new_data[0:10])
+                
             #Convert to bytes
             out_data = bytes(new_data)
             return (out_data, pyaudio.paContinue)

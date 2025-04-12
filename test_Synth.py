@@ -21,8 +21,8 @@ test_Synth = Synth.Synth("Saw", 2)
 print("Connected to MIDI input:", test_Synth._device_is_connected)
 
 #FIXME spoof some MIDI signals
-test_Synth._output.play(test_Synth._soundbank, 60)
-test_Synth._output.play(test_Synth._soundbank, 72)
+#test_Synth._output.play(test_Synth._soundbank, 60)
+#test_Synth._output.play(test_Synth._soundbank, 72)
 
 #Hack to let me test MIDI objects
 while True:

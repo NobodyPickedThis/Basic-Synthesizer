@@ -55,7 +55,6 @@ class mton():
         for i in range(21, 109):
             print("MIDI: ", i, ", note: ", f'{self._dictionary[i]:.5}', sep="")
 
-
 #Object containing MIDI to frequency mappings. Create before latency is required, then reference as needed
 class mtof():
 
