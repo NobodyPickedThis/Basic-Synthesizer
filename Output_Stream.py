@@ -27,18 +27,14 @@ class output:
     #Write to output stream
     def play(self, wave_data: np.array):
 
+        #Store wave_data
+        self._audio_data = wave_data
+
         # Define callback function that PyAudio will call when it needs more audio data
         def callback(in_data, frame_count, time_info, status):
           
-            new_data = wave_data
-
-            #FIXME debugging polyphony algorithm
-            #if self._debug_mode > 1:
-            #    print(max(new_data), min(new_data))
-            #    print(new_data[0:10])
-                
             #Convert to bytes
-            out_data = bytes(new_data)
+            out_data = bytes(self._audio_data)
             return (out_data, pyaudio.paContinue)
 
         #Open new stream (if no others are alreayd open) with callback
@@ -57,7 +53,7 @@ class output:
 
     #Close stream
     def stop(self):
-        self._current_data = None
+        self._audio_data = None
         if self._debug_mode > 0:
             print("Stopping stream")
         if self._stream is not None:

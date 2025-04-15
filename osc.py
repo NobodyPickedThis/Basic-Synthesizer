@@ -59,13 +59,7 @@ class osc:
             generation_phase += (2 * math.pi * frequency) / consts.BITRATE
             if generation_phase > 2 * math.pi:
                 generation_phase -= 2 * math.pi
-            
-        #FIXME may wish to move to flattenVoices function in Synth.py
-        # Convert to 16-bit audio
-        #samples_int16 = (samples * 32767).astype(np.int16) + 2      #Offset so that first sample is 0
-        #return samples_int16
 
-        #FIXME non modified data being returned, may be permanent, may be temporary
         return samples
     
     #Return enough samples to fill the buffer size
@@ -77,7 +71,7 @@ class osc:
         position = self._current_positions[MIDI_value]
 
         #Initialise output buffer
-        output = np.zeros(consts.BUFFER_SIZE, np.int16)
+        output = np.zeros(consts.BUFFER_SIZE, float)
 
         #Track position within output buffer and number of samples still to populate
         output_position = 0
@@ -87,7 +81,7 @@ class osc:
         while remaining > 0:
             #Number of samples that can be populated at once, rather than one at a time
             chunk_size = min(period - position, remaining)
-            output[output_position : output_position + chunk_size] = wave[position : position + chunk_size]
+            output[output_position : output_position + chunk_size] = wave[position : position + chunk_size] - 1
 
             #Update all position trackers
             output_position += chunk_size
