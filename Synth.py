@@ -2,6 +2,7 @@
 import numpy as np
 
 #Other objects from this project
+import Clock
 import MIDI_input as MIDI
 import Output_Stream
 import osc
@@ -25,6 +26,9 @@ class Synth(MIDI.MIDI_device):
     def __init__(self, wave_type: str = "Sine", debug_mode: int = 0, amplitude: float = 1.0):
         
         super().__init__(consts.DEVICE_NAME)
+
+        #Initialize clock for syncing phases between samples without tracking them individually
+        self._clock = Clock.Clock()
         
         self._debug_mode = debug_mode #0 --- No debug outputs
                                       #1 --- Simple debug outputs

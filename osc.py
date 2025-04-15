@@ -1,15 +1,18 @@
 import math
+import time
+import Clock
+import Waveform_Visualizer
 from lib import consts
 from lib import mtof
 import numpy as np
-import Waveform_Visualizer
 
 class osc:
-    def __init__(self, wave_type = "Sine"):
+    def __init__(self, wave_type = "Sine", clock_start: int = time()):
 
         #Constant parameters
         self._wave_type = wave_type
         self._mtof = mtof.mtof()
+        self._clock = Clock.Clock(clock_start)
 
         #Dictionary to hold wave and phase data
         self._bank = dict()
@@ -22,9 +25,6 @@ class osc:
 
             #Generate 4 periods per note
             self._bank[i] = self.generateWavedata(samples_per_period, frequency, i)
-
-            #Initialize each wave's position
-            self._current_positions[i] = 0
 
 
     #Generate phase-continuous samples
@@ -87,9 +87,6 @@ class osc:
             output_position += chunk_size
             position = (position + chunk_size) % period
             remaining -= chunk_size
-
-        #Remember current position!
-        self._current_positions[MIDI_value] = position
 
         #Send buffer
         return output
