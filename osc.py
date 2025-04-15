@@ -62,8 +62,11 @@ class osc:
             
         #FIXME may wish to move to flattenVoices function in Synth.py
         # Convert to 16-bit audio
-        samples_int16 = (samples * 32767).astype(np.int16) + 2      #Offset so that first sample is 0
-        return samples_int16
+        #samples_int16 = (samples * 32767).astype(np.int16) + 2      #Offset so that first sample is 0
+        #return samples_int16
+
+        #FIXME non modified data being returned, may be permanent, may be temporary
+        return samples
     
     #Return enough samples to fill the buffer size
     def __getitem__(self, MIDI_value) -> np.array:

@@ -1,16 +1,19 @@
+#External libraries
 import numpy as np
 
+#Other objects from this project
 import MIDI_input as MIDI
 import Output_Stream
 import osc
 #import ADSR
 #import filter
 
+#Utilities
 from lib import mtof
 from lib import consts
 
+#Flag for indicating whether a given voice is off
 UNUSED = -1
-
 
 #"Hub" class, defines signal flow up until Output_Stream
 #   -IS A MIDI_device object
@@ -58,6 +61,9 @@ class Synth(MIDI.MIDI_device):
         for x in self._voices:
             if x[0] != UNUSED:
                 print(self._mton[x[0]], ": [", x[1][:10], " ...]", sep="")
+    #Display first 10 samples of the flattened data
+    def printFlattenedData(self, data):
+        print("FLATTENED DATA: [", data[:10], " ...]", sep="")
 
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
@@ -138,13 +144,23 @@ class Synth(MIDI.MIDI_device):
     def flattenVoices(self) -> np.array:
 
         #Return and calculation variables
-        flat_data = np.array(consts.BUFFER_SIZE, dtype=float)
+        summed_data = np.array(consts.BUFFER_SIZE, dtype=float)
         num_voices = 0
         
         #Sum all voices
         for x in self._voices:
             if x[0] != UNUSED:
                 num_voices += 1
-                flat_data = np.add(flat_data, x[1])
+                summed_data = np.add(summed_data, x[1])
 
-        return np.divide(flat_data, np.full(consts.BUFFER_SIZE, fill_value=num_voices, dtype=float))
+        #Renormalize by scaling the sum down proportionally to the number of active voices
+        renormalized_data = np.divide(summed_data, np.full(consts.BUFFER_SIZE, fill_value=num_voices, dtype=float))
+
+        #Convert to 16-bit audio
+        int16_data = (renormalized_data * 32767).astype(np.int16) + 2      #Offset so that first sample is 0 FIXME hopefully this offset is still accurate after moving this from osc...?
+        
+        #Comment out to improve performance
+        if self._debug_mode > 0:
+            self.printFlattenedData(int16_data)
+        
+        return int16_data
