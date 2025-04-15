@@ -7,7 +7,7 @@ from lib import mtof
 import numpy as np
 
 class osc:
-    def __init__(self, wave_type = "Sine", clock_start: int = time()):
+    def __init__(self, wave_type = "Sine", clock_start: int = time.time()):
 
         #Constant parameters
         self._wave_type = wave_type
@@ -16,7 +16,6 @@ class osc:
 
         #Dictionary to hold wave and phase data
         self._bank = dict()
-        self._current_positions = dict()
 
         #Initialize wavedata
         for i in range(21, 109):
@@ -64,11 +63,12 @@ class osc:
     
     #Return enough samples to fill the buffer size
     def __getitem__(self, MIDI_value) -> np.array:
-
+        #FIXME may wish to move this "chunking" process to the flattener in Synth
+        """
         #Fetch data and phase for the required note
         wave = self._bank[MIDI_value]
         period = len(wave)
-        position = self._current_positions[MIDI_value]
+        position = self._clock.currentPeriodPosition(period)
 
         #Initialise output buffer
         output = np.zeros(consts.BUFFER_SIZE, float)
@@ -90,6 +90,8 @@ class osc:
 
         #Send buffer
         return output
+        """
+        return self._bank[MIDI_value]
     
     def drawWave(self) -> None:
         Waveform_Visualizer.drawWaveform(self._bank[60])

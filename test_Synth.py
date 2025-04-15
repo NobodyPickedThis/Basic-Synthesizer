@@ -25,14 +25,14 @@ print("Connected to MIDI input:", test_Synth._device_is_connected)
 
 
 #FIXME spoof some MIDI signals
-#test_Synth._output.play(test_Synth._soundbank[60])
-#time.sleep(0.5)
-#test_Synth._output.play((test_Synth._silence * 32767).astype(np.int16))
-#time.sleep(0.5)
-#test_Synth._output.play(test_Synth._soundbank[72])
-#time.sleep(0.5)
-#test_Synth._output.play((test_Synth._silence * 32767).astype(np.int16))
+test_Synth._output.play(test_Synth._soundbank[60])
+time.sleep(0.5)
+test_Synth._output.play((test_Synth._silence * 32767).astype(np.int16))
+time.sleep(0.5)
+test_Synth._output.play(test_Synth._soundbank[72])
+time.sleep(0.5)
+test_Synth._output.play((test_Synth._silence * 32767).astype(np.int16))
 
-#Hack to let me test MIDI objects
-while True:
-    time.sleep(1)
+#Hack to let me test with MIDI devices
+#while True:
+#    time.sleep(1)

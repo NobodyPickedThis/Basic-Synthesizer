@@ -13,3 +13,6 @@
  4) Filter    
     - Should take midi CC value and pass all audio through before output but after
         ADSR, again in "some way(tm)"
+
+ 5) Interesting Synthesis
+    - Implement some combination of additive, FM, etc...
