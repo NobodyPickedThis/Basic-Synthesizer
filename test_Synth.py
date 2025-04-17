@@ -14,7 +14,7 @@ import time
 #test_MIDI = MIDI.MIDI_device()
 
 #Synth calls
-test_Synth = Synth.Synth("Saw", 2)
+test_Synth = Synth.Synth("Sine", 2)
 test_Synth.printAllMIDIDevices()
 
 print("Connected to MIDI input:", test_Synth._device_is_connected)

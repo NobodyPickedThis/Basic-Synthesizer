@@ -11,12 +11,14 @@ class output:
         self._p = pyaudio.PyAudio()     
         self._stream = None
         self._isPlaying = False
-        self._audio_data = None
+        self._buffer_provider = None
         self._debug_mode = debug_mode #0 --- No debug outputs
                                       #1 --- Simple debug outputs
                                       #2 --- Verbose debug outputs
 
         self._silence = np.zeros(consts.BUFFER_SIZE, np.int16)
+
+        self.initStream(self._buffer_provider)
         
     #Don't leave the stream open!
     def __del__(self):
@@ -25,42 +27,52 @@ class output:
         self.stop()
         self._p.terminate()
 
-    #Write to output stream
-    def play(self, wave_bank: osc.osc = None, MIDI_value: int = 0):
-
-        # Define callback function that PyAudio will call when it needs more audio data
-        def callback(in_data, frame_count, time_info, status):
+    #Initialize stream and callback
+    def initStream(self, buffer_provider):
+        self._buffer_provider = buffer_provider
+        
+        # Define the callback
+        def stream_callback(in_data, frame_count, time_info, status):
+            if not self._isPlaying or self._buffer_provider is None:
+                return (self._silence.tobytes(), pyaudio.paContinue)
             
-            #Assume data has been given
-            new_data = wave_bank[self._current_MIDI]
+            # Get fresh data from the buffer provider
+            new_data = self._buffer_provider()
             
-            #If it hasn't (or flag is off) set to silence
-            if not self._isPlaying or wave_bank is None:
-                new_data = self._silence
-                
-            #Convert to bytes
-            out_data = bytes(new_data)
-            return (out_data, pyaudio.paContinue)
-
-        #Open new stream (if no others are alreayd open) with callback
+            if self._debug_mode > 1:
+                print(f"Callback getting fresh data from provider")
+                print(f"First few samples: {new_data[:5]}")
+            
+            return (new_data.tobytes(), pyaudio.paContinue)
+        
+        # Create the stream
         if self._stream is None:
             self._stream = self._p.open(
                 format=pyaudio.paInt16, 
                 channels=1,
                 rate=consts.BITRATE,
                 output=True,
-                stream_callback=callback,
+                stream_callback=stream_callback,
                 frames_per_buffer=consts.BUFFER_SIZE
             )
+            self._stream.start_stream()
+            self._isPlaying = True
         
-        #Start the stream
-        self._stream.start_stream()
+
+    #Write to output stream using provided buffer
+    def play(self, buffer_provider):
+
+        self._buffer_provider = buffer_provider
+
+        #Open new stream (if no others are already open) with callback
+        if self._stream is None:
+            self.initStream(buffer_provider)
+        
         self._isPlaying = True
-        self._current_MIDI = MIDI_value
 
     #Close stream
     def stop(self):
-        self._current_data = None
+        self._current_data = self._silence
         if self._debug_mode > 0:
             print("Stopping stream")
         if self._stream is not None:

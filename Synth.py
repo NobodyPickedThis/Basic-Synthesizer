@@ -1,3 +1,5 @@
+import numpy as np
+
 import MIDI_input as MIDI
 import Output_Stream
 import osc
@@ -5,6 +7,8 @@ import osc
 #import filter
 from lib import mtof
 from lib import consts
+
+UNUSED = -1
 
 
 #"Hub" class, defines signal flow up until Output_Stream
@@ -24,12 +28,18 @@ class Synth(MIDI.MIDI_device):
 
         #Initialize output stream
         self._output = Output_Stream.output(self._debug_mode)
+        self._output.play(self.getAudioBuffer)
 
         #Signal generation and processing components
         self._amplitude = amplitude
         self._osc = osc.osc(wave_type)   #FIXME add parametric constructor support from midi CC
         #self._envelope = ADSR.ADSR()
         #self._filter = filter.filter() #FIXME implement
+
+        #Voice handler
+        self._voices = []
+        for i in range(consts.MAX_VOICES):
+            self._voices.append(UNUSED)
 
         #Mtof and Mton converters, just in case
         self._mtof = mtof.mtof()
@@ -49,20 +59,101 @@ class Synth(MIDI.MIDI_device):
             #if self._debug_mode > 0:
             #    print(f"Note ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
 
+            self.addVoice(message.note)
+            if self._debug_mode > 0:
+                print("Active voices:,", [x for x in self._voices if x != UNUSED])
+
             #FIXME trigger ADSR, calling the output directly is temporary! (Will require small
             #refactor. For example, passing the entire osc object seems wrong to me)
-            self._output._isPlaying = True
-            self._output.play(self._osc, message.note)
+            self.addVoice(message.note)
+
+            if not self._output._isPlaying:
+                self._output._isPlaying = True
 
         #Trigger ADSR release
         #FIXME when ADSR exists, this is a hack
         elif message.type == 'note_off':
             #if self._debug_mode > 0:
             #    print(f"Note OFF --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
-            self._output._isPlaying = False
+            
+            self.removeVoice(message.note)
+
+            if self._debug_mode > 0:
+                print("Active voices:,", [x for x in self._voices if x != UNUSED])
+
+            #If no voices are active, stop playing
+            active_voices = [v for v in self._voices if v != UNUSED]
+            if not active_voices:
+                self._output._isPlaying = False
 
         #FIXME outside of scope for now, but maybe worth looking into later
         #(map parameters to MIDI CC rather than a GUI...?)
         elif message.type == 'control_change':
             if self._debug_mode > 1:
                 print(f"Control Change: {message.control}, Value: {message.value}")
+
+    #Voice management
+    def addVoice(self, new_voice: int = 0):
+        #Only allow valid voices
+        if new_voice < 21 or new_voice > 108:
+            if self._debug_mode > 0:
+                print("Invalid voice value, no new voice added")
+            return
+        
+        #Find location for new voice, within voice limit
+        i = 0
+        while self._voices[i] != UNUSED and i < consts.MAX_VOICES:
+            i += 1
+        if i >= consts.MAX_VOICES:
+            if self._debug_mode > 0:
+                print("Maximum voices exceeded, no new voice added")
+            return
+
+        #Update register
+        self._voices[i] = new_voice
+        return
+    def removeVoice(self, old_voice: int = 0):
+        
+        #Only allow valid voices
+        if old_voice < 21 or old_voice > 108:
+            if self._debug_mode > 0:
+                print("Invalid voice value, no voice removed")
+            return
+        
+        #Find location for old voice, if it exists
+        i = 0
+        while self._voices[i] != old_voice and i < consts.MAX_VOICES:
+            i += 1
+        if i >= consts.MAX_VOICES:
+            if self._debug_mode > 0:
+                print("Voice was not active, no voice removed")
+            return
+        
+        #Update register
+        self._voices[i] = UNUSED
+        return
+
+    #Consolidate audio from wavetable and voice list to a buffer for next step in signal chain
+    def getAudioBuffer(self):
+        #Start with silence
+        mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.int16)
+        
+        #Count active voices
+        active_voices = [v for v in self._voices if v != UNUSED]
+        num_active = len(active_voices)
+        
+        #Return silence if nothing active
+        if num_active == 0:
+            return mixed_buffer
+        
+        #Mix all active voices
+        for voice in active_voices:
+            #Get the oscillator data for this voice
+            voice_data = self._osc[voice]
+            
+            #Mix into the buffer (with scaling to prevent clipping)
+            #Use float64 for the calculation to prevent overflow
+            mixed_buffer = mixed_buffer.astype(np.float64) + (voice_data.astype(np.float64) / num_active)
+        
+        #Convert back to int16
+        return mixed_buffer.astype(np.int16)
