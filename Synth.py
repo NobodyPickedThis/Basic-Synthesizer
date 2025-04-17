@@ -100,9 +100,13 @@ class Synth(MIDI.MIDI_device):
                 print("Invalid voice value, no new voice added")
             return
         
-        #Find location for new voice, within voice limit
+        #Find location for new voice, within voice limit. Don't allow repeat voices!
         i = 0
         while self._voices[i] != UNUSED and i < consts.MAX_VOICES:
+            if self._voices[i] == new_voice:
+                if self._debug_mode > 0:
+                    print("Redundant voice detected, no new voice added")
+                return
             i += 1
         if i >= consts.MAX_VOICES:
             if self._debug_mode > 0:

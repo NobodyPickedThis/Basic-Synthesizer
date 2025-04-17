@@ -39,9 +39,9 @@ class output:
             # Get fresh data from the buffer provider
             new_data = self._buffer_provider()
             
-            if self._debug_mode > 1:
-                print(f"Callback getting fresh data from provider")
-                print(f"First few samples: {new_data[:5]}")
+            #if self._debug_mode > 1:
+            #    print(f"Callback getting fresh data from provider")
+            #    print(f"First few samples: {new_data[:5]}")
             
             return (new_data.tobytes(), pyaudio.paContinue)
         
