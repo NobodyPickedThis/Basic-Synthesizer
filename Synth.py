@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 import MIDI_input as MIDI
 import Output_Stream
@@ -161,3 +162,15 @@ class Synth(MIDI.MIDI_device):
         
         #Convert back to int16
         return mixed_buffer.astype(np.int16)
+    
+
+#Runs the synth
+if __name__ == "__main__":
+    synth = Synth(consts.WAVE_TYPE, 2)
+    synth.printAllMIDIDevices()
+
+    print("Connected to MIDI input:", synth._device_is_connected)
+
+    #Hack to let me test MIDI objects
+    while True:
+        time.sleep(1)
