@@ -1,5 +1,6 @@
 #External libraries
 import numpy as np
+import time
 
 #Other objects from this project
 import Clock
@@ -43,7 +44,7 @@ class Synth(MIDI.MIDI_device):
         self._amplitude = amplitude                                  #Master volume
         self._soundbank = osc.osc(wave_type)                         #Wave data for all frequencies
 
-        self._silence = np.zeros(consts.BUFFER_SIZE, float)          #Silent output when a voice isn't active
+        self._silence = bytes(np.zeros(consts.BUFFER_SIZE, np.int16))          #Silent output when a voice isn't active
         self._voices = [UNUSED for _ in range(consts.MAX_VOICES)]    #All currently active voices
 
         #self._envelope = ADSR.ADSR()   #FIXME implement, possibly in other file/class
@@ -67,6 +68,15 @@ class Synth(MIDI.MIDI_device):
     #Display first 10 samples of the flattened data
     def printFlattenedData(self, data):
         print("FLATTENED DATA: [", data[:10], " ...]", sep="")
+    #Verify soundbank notes are accurate
+    def playAllNotes(self):
+        for i in range(21, 109):
+            print("Note: ", self._mton[i], ", Frequency: ", self._mtof[i], ", Period length: ", len(self._soundbank[i]), ", wave data (first 10 samples):", self._soundbank[i][:10], sep="")
+            self._output.play(self._soundbank[i])
+            time.sleep(0.5)
+            self._output.pause()
+            time.sleep(0.1)
+
 
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
@@ -82,7 +92,7 @@ class Synth(MIDI.MIDI_device):
             #FIXME trigger ADSR, calling the output directly is temporary! (Will require small
             #refactor. For example, passing the entire osc object seems wrong to me)
             self.addVoice(message.note)
-            self._output.play(self.flattenVoices())
+            self._output.play(self._soundbank[message.note])
 
         #Trigger ADSR release
         #FIXME when ADSR exists, this is a hack
@@ -90,7 +100,7 @@ class Synth(MIDI.MIDI_device):
             #FIXME trigger ADSR, calling the output directly is temporary! (Will require small
             #refactor. For example, passing the entire osc object seems wrong to me)
             self.removeVoice(message.note)
-            self._output.play(self.flattenVoices())
+            self._output.play(self._silence)
 
         #FIXME outside of scope for now, but maybe worth looking into later
         #(map parameters to MIDI CC rather than a GUI...?)
@@ -161,6 +171,7 @@ class Synth(MIDI.MIDI_device):
         summed_data = np.zeros(consts.BUFFER_SIZE, dtype=float)
         active_voices = [x for x in self._voices if x != UNUSED]
         num_voices = len(active_voices)
+        
 
         #Comment out to improve performance
         if self._debug_mode > 0:
@@ -170,10 +181,12 @@ class Synth(MIDI.MIDI_device):
         if num_voices == 0:
             return (self._silence * 32767).astype(np.int16)
 
-        #Sum all voices
+        #Sum all voices, phase aligned
         for x in self._voices:
             if x != UNUSED:
-                summed_data = np.add(summed_data, self._soundbank[x])
+                period = len(self._soundbank[x])
+                position = self._clock.currentPeriodPosition(period)
+                summed_data = np.add(summed_data, self._soundbank[x][position : position + consts.BUFFER_SIZE])
 
         #Avoid div by 0
         if num_voices > 1:
@@ -186,11 +199,4 @@ class Synth(MIDI.MIDI_device):
         #Clip to [-1, 1]
         clipped_data = np.clip(renormalized_data, -1.0, 1.0)
         
-        #Convert to 16-bit audio
-        int16_data = (clipped_data * 32767).astype(np.int16)    #Offset so that first sample is 0 FIXME hopefully this offset is still accurate after moving this from osc...?
-        
-        #Comment out to improve performance
-        if self._debug_mode > 0:
-            self.printFlattenedData(int16_data)
-        
-        return int16_data
+        return clipped_data

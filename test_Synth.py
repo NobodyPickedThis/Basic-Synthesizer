@@ -15,23 +15,28 @@ import numpy as np
 #test_MIDI = MIDI.MIDI_device()
 
 #Synth calls
-test_Synth = Synth.Synth("Saw", 2)
+test_Synth = Synth.Synth("Sine", 2)
 test_Synth.printAllMIDIDevices()
 #test_Synth.printSoundBank()
 test_Synth.printActiveVoices()
 
 print("Connected to MIDI input:", test_Synth._device_is_connected)
 
+#FIXME play soundbank one at a time
+test_Synth.playAllNotes()
 
-
+"""
 #FIXME spoof some MIDI signals
-test_Synth._output.play(test_Synth._soundbank[60])
+test_Synth._output.play(test_Synth._soundbank[30])
 time.sleep(0.5)
 test_Synth._output.play((test_Synth._silence * 32767).astype(np.int16))
 time.sleep(0.5)
-test_Synth._output.play(test_Synth._soundbank[72])
+test_Synth._output.play(test_Synth._soundbank[50])
 time.sleep(0.5)
 test_Synth._output.play((test_Synth._silence * 32767).astype(np.int16))
+time.sleep(0.5)
+test_Synth._output.play(test_Synth._soundbank[70])
+time.sleep(0.5)"""
 
 #Hack to let me test with MIDI devices
 #while True:

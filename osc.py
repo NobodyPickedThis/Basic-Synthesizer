@@ -23,11 +23,11 @@ class osc:
             samples_per_period = int(round(consts.BITRATE / frequency))
 
             #Generate 4 periods per note
-            self._bank[i] = self.generateWavedata(samples_per_period, frequency, i)
+            self._bank[i] = self.generateWavedata(samples_per_period, frequency)
 
 
     #Generate phase-continuous samples
-    def generateWavedata(self, num_samples: int = consts.BUFFER_SIZE, frequency: float = 200.00, MIDI: int = 0) -> list:
+    def generateWavedata(self, num_samples: int = 1, frequency: float = 1) -> np.array:
         
         # Create enough samples to fill the requested buffer size
         samples = np.zeros(num_samples, dtype=float)
@@ -59,38 +59,12 @@ class osc:
             if generation_phase > 2 * math.pi:
                 generation_phase -= 2 * math.pi
 
-        return samples
+        #Scale and convert to int16
+        int16_samples = (samples * 32767).astype(np.int16)
+        return int16_samples
     
-    #Return enough samples to fill the buffer size
+    #Returns the data in the index requested
     def __getitem__(self, MIDI_value) -> np.array:
-        #FIXME may wish to move this "chunking" process to the flattener in Synth
-        """
-        #Fetch data and phase for the required note
-        wave = self._bank[MIDI_value]
-        period = len(wave)
-        position = self._clock.currentPeriodPosition(period)
-
-        #Initialise output buffer
-        output = np.zeros(consts.BUFFER_SIZE, float)
-
-        #Track position within output buffer and number of samples still to populate
-        output_position = 0
-        remaining = consts.BUFFER_SIZE
-
-        #Populate output buffer while it isn't full
-        while remaining > 0:
-            #Number of samples that can be populated at once, rather than one at a time
-            chunk_size = min(period - position, remaining)
-            output[output_position : output_position + chunk_size] = wave[position : position + chunk_size] - 1
-
-            #Update all position trackers
-            output_position += chunk_size
-            position = (position + chunk_size) % period
-            remaining -= chunk_size
-
-        #Send buffer
-        return output
-        """
         return self._bank[MIDI_value]
     
     def drawWave(self) -> None:

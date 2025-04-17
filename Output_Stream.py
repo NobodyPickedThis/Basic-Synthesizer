@@ -32,8 +32,10 @@ class output:
 
         # Define callback function that PyAudio will call when it needs more audio data
         def callback(in_data, frame_count, time_info, status):
+
+            #FIXME remove when possible ;-;
+            #print("Output audio data (10 samples):", self._audio_data[:10], sep="")
           
-            #Convert to bytes
             out_data = bytes(self._audio_data)
             return (out_data, pyaudio.paContinue)
 
@@ -50,6 +52,10 @@ class output:
         
             #Start the stream
             self._stream.start_stream()
+
+    #Reset to silence
+    def pause(self):
+        self.play(np.zeros(consts.BUFFER_SIZE, np.int16))
 
     #Close stream
     def stop(self):
