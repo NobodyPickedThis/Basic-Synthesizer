@@ -4,22 +4,21 @@ import time
 import MIDI_input as MIDI
 import Output_Stream
 import osc
-#import ADSR
+import ADSR
 #import filter
 from lib import mtof
 from lib import consts
 
 UNUSED = -1
 
-
 #"Hub" class, defines signal flow up until Output_Stream
 #   -IS A MIDI_device object
 #   -HAS A(N) oscillator (osc)
-#   -         envelope (ADSR)
+#   -         envelope (ADSR)     see https://www.desmos.com/calculator/nrn6oabn6h for math
 #   -         Filter (Filter)
 #
 class Synth(MIDI.MIDI_device):
-    def __init__(self, wave_type: str = "Sine", debug_mode: int = 0, amplitude: float = 1.0):
+    def __init__(self, wave_type: str = consts.WAVE_TYPE, debug_mode: int = 0, amplitude: float = 1.0):
         
         super().__init__(consts.DEVICE_NAME)
         
@@ -31,16 +30,20 @@ class Synth(MIDI.MIDI_device):
         self._output = Output_Stream.output(self._debug_mode)
         self._output.play(self.getAudioBuffer)
 
-        #Signal generation and processing components
+        #Signal generation components
         self._amplitude = amplitude
         self._osc = osc.osc(wave_type)   #FIXME add parametric constructor support from midi CC
-        #self._envelope = ADSR.ADSR()
-        #self._filter = filter.filter() #FIXME implement
 
         #Voice handler
         self._voices = []
         for i in range(consts.MAX_VOICES):
             self._voices.append(UNUSED)
+
+        #Signal processing components
+        self._envelopes = []
+        for i in range(consts.MAX_VOICES):
+            self._envelopes.append(ADSR.ADSR())
+        #self._filter = filter.filter() #FIXME implement
 
         #Mtof and Mton converters, just in case
         self._mtof = mtof.mtof()
@@ -50,15 +53,15 @@ class Synth(MIDI.MIDI_device):
     def handleMessage(self, message):
 
         #Comment out to improve performance
-        #if self._debug_mode > 0:
-        #    print("Synth MIDI Callback entered")
+        if self._debug_mode > 1:
+            print("Synth MIDI Callback entered")
 
         #Update oscillator based on new frequency and trigger ADSR start
         #FIXME when ADSR exists, this is a hack
         if message.type == 'note_on' and self._mtof[message.note]:
             #Comment out to improve performance
-            #if self._debug_mode > 0:
-            #    print(f"Note ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
+            if self._debug_mode > 0:
+                print(f"Note ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
 
             self.addVoice(message.note)
             if self._debug_mode > 0:
@@ -74,8 +77,8 @@ class Synth(MIDI.MIDI_device):
         #Trigger ADSR release
         #FIXME when ADSR exists, this is a hack
         elif message.type == 'note_off':
-            #if self._debug_mode > 0:
-            #    print(f"Note OFF --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
+            if self._debug_mode > 0:
+                print(f"Note OFF --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
             
             self.removeVoice(message.note)
 
@@ -101,12 +104,13 @@ class Synth(MIDI.MIDI_device):
                 print("Invalid voice value, no new voice added")
             return
         
-        #Find location for new voice, within voice limit. Don't allow repeat voices!
+        #Find location for new voice, within voice limit. Repeat voices should retrigger their ADSR rather than add a new voice
         i = 0
         while self._voices[i] != UNUSED and i < consts.MAX_VOICES:
             if self._voices[i] == new_voice:
+                self._envelopes[i].reset()
                 if self._debug_mode > 0:
-                    print("Redundant voice detected, no new voice added")
+                    print("Redundant voice detected, resetting envelope")
                 return
             i += 1
         if i >= consts.MAX_VOICES:
@@ -114,7 +118,8 @@ class Synth(MIDI.MIDI_device):
                 print("Maximum voices exceeded, no new voice added")
             return
 
-        #Update register
+        #Update register, turn on envelope
+        self._envelopes[i].on()
         self._voices[i] = new_voice
         return
     def removeVoice(self, old_voice: int = 0):
@@ -134,7 +139,9 @@ class Synth(MIDI.MIDI_device):
                 print("Voice was not active, no voice removed")
             return
         
-        #Update register
+        #Turn off envelope, mark voice as unused and reset envelope only if release stage has completed
+        self._envelopes[i].off()
+        self._envelopes[i].reset()
         self._voices[i] = UNUSED
         return
 
@@ -151,25 +158,33 @@ class Synth(MIDI.MIDI_device):
         if num_active == 0:
             return mixed_buffer
         
+        env_index = 0
         #Mix all active voices
         for voice in active_voices:
             #Get the oscillator data for this voice
             voice_data = self._osc[voice]
-            
+
+            #Fetch envelope data here
+            voice_data = self._envelopes[env_index].applyEnvelope(voice_data)
+            env_index += 1
+
             #Mix into the buffer (with scaling to prevent clipping)
             #Use float64 for the calculation to prevent overflow
-            mixed_buffer = mixed_buffer.astype(np.float64) + (voice_data.astype(np.float64) / num_active)
+            mixed_buffer = mixed_buffer.astype(np.float64) + (voice_data.astype(np.float64) / consts.MAX_VOICES)
         
         #Convert back to int16
         return mixed_buffer.astype(np.int16)
     
-
 #Runs the synth
 if __name__ == "__main__":
-    synth = Synth(consts.WAVE_TYPE, 2)
+    synth = Synth(consts.WAVE_TYPE, consts.DEBUG_MODE)
     synth.printAllMIDIDevices()
 
     print("Connected to MIDI input:", synth._device_is_connected)
+
+    #Visualize waveform or envelope FIXME how to show both?
+    #synth._osc.drawWave()
+    synth._envelopes[0].drawEnvelope()
 
     #Hack to let me test MIDI objects
     while True:

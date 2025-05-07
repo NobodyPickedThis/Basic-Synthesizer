@@ -4,7 +4,7 @@ from lib import mtof
 import numpy as np
 import Waveform_Visualizer
 
-class osc:
+class osc():
     def __init__(self, wave_type = "Sine"):
 
         #Constant parameters
@@ -25,7 +25,6 @@ class osc:
 
             #Initialize each wave's position
             self._current_positions[i] = 0
-
 
     #Generate phase-continuous samples
     def generateWavedata(self, n_samples: int = consts.BUFFER_SIZE, frequency: float = 200.00, MIDI: int = 0) -> list:

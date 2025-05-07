@@ -58,7 +58,6 @@ class output:
             self._stream.start_stream()
             self._isPlaying = True
         
-
     #Write to output stream using provided buffer
     def play(self, buffer_provider):
 

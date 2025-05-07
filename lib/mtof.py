@@ -32,7 +32,6 @@ def mton_calc(MIDI: int = -1) -> str: #default to A0
     #Convert based on fixed point A4 = MIDI 69 = 440Hz
     return iton_map[(MIDI - 21) % 12]
 
-
 #Object containing MIDI to note mappings. Create before latency is required, then reference as needed
 class mton():
 
@@ -54,7 +53,6 @@ class mton():
     def printAllMTON(self):
         for i in range(21, 109):
             print("MIDI: ", i, ", note: ", f'{self._dictionary[i]:.5}', sep="")
-
 
 #Object containing MIDI to frequency mappings. Create before latency is required, then reference as needed
 class mtof():
