@@ -1,10 +1,12 @@
 import numpy as np
 import time
+import mido
 
 import MIDI_input as MIDI
 import Output_Stream
 import osc
 import ADSR
+import Waveform_Visualizer
 #import filter
 from lib import mtof
 from lib import consts
@@ -42,12 +44,15 @@ class Synth(MIDI.MIDI_device):
         #Signal processing components
         self._envelopes = []
         for i in range(consts.MAX_VOICES):
-            self._envelopes.append(ADSR.ADSR())
+            self._envelopes.append(ADSR.ADSR(self._debug_mode))
         #self._filter = filter.filter() #FIXME implement
 
         #Mtof and Mton converters, just in case
         self._mtof = mtof.mtof()
         self._mton = mtof.mton()
+
+        #Visualizer class and output waveform list
+        self._visualizer = Waveform_Visualizer.Plot()
 
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
@@ -67,10 +72,6 @@ class Synth(MIDI.MIDI_device):
             if self._debug_mode > 0:
                 print("Active voices:,", [x for x in self._voices if x != UNUSED])
 
-            #FIXME trigger ADSR, calling the output directly is temporary! (Will require small
-            #refactor. For example, passing the entire osc object seems wrong to me)
-            self.addVoice(message.note)
-
             if not self._output._isPlaying:
                 self._output._isPlaying = True
 
@@ -80,7 +81,7 @@ class Synth(MIDI.MIDI_device):
             if self._debug_mode > 0:
                 print(f"Note OFF --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
             
-            self.removeVoice(message.note)
+            self.releaseVoice(message.note)
 
             if self._debug_mode > 0:
                 print("Active voices:,", [x for x in self._voices if x != UNUSED])
@@ -109,6 +110,7 @@ class Synth(MIDI.MIDI_device):
         while self._voices[i] != UNUSED and i < consts.MAX_VOICES:
             if self._voices[i] == new_voice:
                 self._envelopes[i].reset()
+                self._envelopes[i].start()
                 if self._debug_mode > 0:
                     print("Redundant voice detected, resetting envelope")
                 return
@@ -119,62 +121,65 @@ class Synth(MIDI.MIDI_device):
             return
 
         #Update register, turn on envelope
-        self._envelopes[i].on()
+        self._envelopes[i].start()
         self._voices[i] = new_voice
         return
-    def removeVoice(self, old_voice: int = 0):
+    def releaseVoice(self, rel_voice: int = 0):
         
         #Only allow valid voices
-        if old_voice < 21 or old_voice > 108:
+        if rel_voice < 21 or rel_voice > 108:
             if self._debug_mode > 0:
                 print("Invalid voice value, no voice removed")
             return
         
         #Find location for old voice, if it exists
         i = 0
-        while self._voices[i] != old_voice and i < consts.MAX_VOICES:
+        while self._voices[i] != rel_voice and i < consts.MAX_VOICES - 1:
             i += 1
         if i >= consts.MAX_VOICES:
             if self._debug_mode > 0:
-                print("Voice was not active, no voice removed")
+                print("Voice was not active, nothing to release")
             return
         
-        #Turn off envelope, mark voice as unused and reset envelope only if release stage has completed
-        self._envelopes[i].off()
-        self._envelopes[i].reset()
-        self._voices[i] = UNUSED
+        #Turn envelope to release phase
+        self._envelopes[i].release()
         return
-
+    def pruneVoices(self):
+        for i in range(consts.MAX_VOICES):
+            if self._voices[i] != UNUSED and self._envelopes[i].isOff():
+                self._voices[i] = UNUSED
+                if self._debug_mode > 0:
+                    print(f"Removing finished voice at index {i}")
+            
     #Consolidate audio from wavetable and voice list to a buffer for next step in signal chain
     def getAudioBuffer(self):
+
+        #Ensure finished voices are set as such
+        self.pruneVoices()
+
         #Start with silence
         mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.int16)
-        
-        #Count active voices
-        active_voices = [v for v in self._voices if v != UNUSED]
-        num_active = len(active_voices)
-        
-        #Return silence if nothing active
-        if num_active == 0:
-            return mixed_buffer
-        
-        env_index = 0
+    
         #Mix all active voices
-        for voice in active_voices:
-            #Get the oscillator data for this voice
-            voice_data = self._osc[voice]
+        for i in range(len(self._voices)):
+            if self._voices[i] != UNUSED:
 
-            #Fetch envelope data here
-            voice_data = self._envelopes[env_index].applyEnvelope(voice_data)
-            env_index += 1
+                #Get the oscillator data for this voice
+                voice_data = self._envelopes[i].applyEnvelope(self._osc[self._voices[i]])
 
-            #Mix into the buffer (with scaling to prevent clipping)
-            #Use float64 for the calculation to prevent overflow
-            mixed_buffer = mixed_buffer.astype(np.float64) + (voice_data.astype(np.float64) / consts.MAX_VOICES)
-        
+                #Mix into the buffer, Use float64 for the calculation to prevent overflow
+                mixed_buffer = mixed_buffer.astype(np.float64) + (voice_data.astype(np.float64) / consts.MAX_VOICES)
+    
         #Convert back to int16
         return mixed_buffer.astype(np.int16)
     
+    #Visualizes waveform and envelope
+    def visualize(self) -> None:
+        self._osc.drawWaveform(self._visualizer, 0)
+        self._envelopes[0].drawEnvelope(self._visualizer, 1)
+        self._visualizer.display()
+
+
 #Runs the synth
 if __name__ == "__main__":
     synth = Synth(consts.WAVE_TYPE, consts.DEBUG_MODE)
@@ -182,10 +187,19 @@ if __name__ == "__main__":
 
     print("Connected to MIDI input:", synth._device_is_connected)
 
-    #Visualize waveform or envelope FIXME how to show both?
-    #synth._osc.drawWave()
-    synth._envelopes[0].drawEnvelope()
+    #Visualize wave and envelope data
+    synth.visualize()
 
-    #Hack to let me test MIDI objects
-    while True:
-        time.sleep(1)
+    #Either play the MIDI instrument or spoof some messages
+    match synth._device_is_connected:
+        case True:
+            #Hack to let me test MIDI objects
+            while True:
+                time.sleep(1)
+        case False:
+            #Spoof a few notes
+            for i in range(3):
+                synth.handleMessage(mido.Message('note_on', note=consts.MIDDLE_C))
+                time.sleep(2)
+                synth.handleMessage(mido.Message('note_off', note=consts.MIDDLE_C))
+                time.sleep(2)

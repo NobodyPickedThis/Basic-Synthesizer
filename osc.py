@@ -2,7 +2,6 @@ import math
 from lib import consts
 from lib import mtof
 import numpy as np
-import Waveform_Visualizer
 
 class osc():
     def __init__(self, wave_type = "Sine"):
@@ -49,7 +48,7 @@ class osc():
                         samples[i] = -1
 
                 case "Saw":
-                    samples[i] = 1 - (2 * (generation_phase / (2 * math.pi)) - 1.0)
+                    samples[i] = -1 * (1 - (2 * (generation_phase / (2 * math.pi)) - 1.0))
 
                 case _:
                     pass
@@ -95,8 +94,8 @@ class osc():
         #Send buffer
         return output
     
-    def drawWave(self) -> None:
-        Waveform_Visualizer.drawWaveform(self._bank[60])
+    def drawWaveform(self, plot, pos: int = 0) -> None:
+        plot.drawWaveform(self._bank[60], pos)
 
     def printWave(self) -> None:
         print_list = self.getWavedata(self._samples_per_period)

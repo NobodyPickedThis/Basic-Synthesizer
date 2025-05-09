@@ -1,3 +1,5 @@
+from lib import consts
+
 #Calculation function, can call when latency isn't first priority
 def mtof_calc(MIDI: int = -1) -> float: #default to A0
     
@@ -6,7 +8,7 @@ def mtof_calc(MIDI: int = -1) -> float: #default to A0
         raise ValueError("Only MIDI values between 21 and 108 (inclusive) have a frequency representation")
     
     #Convert based on fixed point A4 = MIDI 69 = 440Hz
-    return 440 * (2 ** ((MIDI - 69) / 12))
+    return 440 * (2 ** ((MIDI - consts.MIDDLE_C) / 12))
 
 def mton_calc(MIDI: int = -1) -> str: #default to A0
     
