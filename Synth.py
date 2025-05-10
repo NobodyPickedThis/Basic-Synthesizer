@@ -8,6 +8,7 @@ import osc
 import ADSR
 import Waveform_Visualizer
 #import filter
+
 from lib import mtof
 from lib import consts
 
@@ -66,7 +67,7 @@ class Synth(MIDI.MIDI_device):
         if message.type == 'note_on' and self._mtof[message.note]:
             #Comment out to improve performance
             if self._debug_mode > 0:
-                print(f"Note ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
+                print(f"\nNote ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
 
             self.addVoice(message.note)
             if self._debug_mode > 0:
@@ -84,7 +85,7 @@ class Synth(MIDI.MIDI_device):
             self.releaseVoice(message.note)
 
             if self._debug_mode > 0:
-                print("Active voices:,", [x for x in self._voices if x != UNUSED])
+                print("Active voices:", [x for x in self._voices if x != UNUSED])
 
             #If no voices are active, stop playing
             active_voices = [v for v in self._voices if v != UNUSED]
@@ -141,14 +142,20 @@ class Synth(MIDI.MIDI_device):
                 print("Voice was not active, nothing to release")
             return
         
+        if self._debug_mode > 1:
+            print("Voice before release: ", self._voices[i])
+
         #Turn envelope to release phase
         self._envelopes[i].release()
+
+        if self._debug_mode > 1:
+            print("Voice after release: ", self._voices[i])
         return
     def pruneVoices(self):
         for i in range(consts.MAX_VOICES):
             if self._voices[i] != UNUSED and self._envelopes[i].isOff():
                 self._voices[i] = UNUSED
-                if self._debug_mode > 0:
+                if self._debug_mode > 1:
                     print(f"Removing finished voice at index {i}")
             
     #Consolidate audio from wavetable and voice list to a buffer for next step in signal chain
@@ -169,7 +176,7 @@ class Synth(MIDI.MIDI_device):
 
                 #Mix into the buffer, Use float64 for the calculation to prevent overflow
                 mixed_buffer = mixed_buffer.astype(np.float64) + (voice_data.astype(np.float64) / consts.MAX_VOICES)
-    
+
         #Convert back to int16
         return mixed_buffer.astype(np.int16)
     

@@ -72,15 +72,11 @@ class ADSR():
         arr_size = len(pre_env_data)
         return_data = np.zeros(arr_size, float)
 
-        if self._debug_mode > 1:
-            print("Current envelope state: ", self._state)
-
         match self._state:
             case consts.ADS:
                 for i in range(arr_size):
 
                     pos = self._position + i
-                    
                     if pos < self._attack:
                         env_val = float(pos / self._attack) ** 2
                     elif pos < (self._attack + self._decay):
@@ -94,13 +90,11 @@ class ADSR():
                 return return_data
 
             case consts.R:
-
                 for i in range(arr_size):
                     
                     pos = self._position + i
-                    
                     if pos < self._release:
-                        return_data[i] = max(0.0, pre_env_data[i] * self._R_values[i])
+                        return_data[i] = pre_env_data[i] * self._R_values[pos]
                     else:
                         return_data[i] = 0.0
 
@@ -118,13 +112,20 @@ class ADSR():
 
     # Turn note on
     def start(self):
+        if self._debug_mode > 1:
+            print("Envelope state before start: ", self._state)
         self._state = consts.ADS
-        self.generateADS
-        self.generateR
+        if self._debug_mode > 1:
+            print("Envelope state after start: ", self._state)
     # Change state from ADS to R, turn off if release is 0 immediately
     def release(self):
+        if self._debug_mode > 1:
+            print("Envelope state before release: ", self._state)
         if self._state == consts.ADS:
             self._state = consts.R
+            self._position = 0
+        if self._debug_mode > 1:
+            print("Envelope state after release: ", self._state)
 
     # Check state
     def isOn(self) -> bool:
@@ -134,12 +135,16 @@ class ADSR():
 
     # Reset envelope to initial state (for after it has been "used up")
     def reset(self):
+        if self._debug_mode > 1:
+            print("Envelope state before reset: ", self._state)
         self._ADS_values = np.zeros(self._ADS_len, dtype=float)
         self._R_values = np.zeros(self._R_len, dtype=float) 
         self.generateADS()
         self.generateR()
         self._state = consts.OFF
         self._position = 0
+        if self._debug_mode > 1:
+            print("Envelope state after reset: ", self._state)
 
     # Visualize envelope
     def drawEnvelope(self, plot, pos: int = 1) -> None:

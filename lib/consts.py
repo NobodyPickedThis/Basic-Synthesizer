@@ -6,12 +6,12 @@ DEVICE_NAME = 'MPKmini2'
 MAX_VOICES = 8
 MIDDLE_C = 69
 
-WAVE_TYPE = "Sine"        #Supports "Sine" "Saw" or "Square"
+WAVE_TYPE = "Sine"           #Supports "Sine" "Saw" or "Square"
 
-ATTACK =  0.100    #in s
-DECAY =   1.000    #in s
+ATTACK =  0.350             #in s
+DECAY =   1.000             #in s
 SUSTAIN = 1.000
-RELEASE = 1.000    #in s
+RELEASE = 1.150             #in s
 
 NOTE_ON = 1
 NOTE_OFF = 0
