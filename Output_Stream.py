@@ -1,5 +1,4 @@
 import pyaudio
-import osc
 from lib import consts
 import numpy as np
 
