@@ -206,7 +206,7 @@ if __name__ == "__main__":
         case False:
             #Spoof a few notes
             for i in range(3):
-                synth.handleMessage(mido.Message('note_on', note=consts.MIDDLE_C))
+                synth.handleMessage(mido.Message('note_on', note=consts.A_440))
                 time.sleep(2)
-                synth.handleMessage(mido.Message('note_off', note=consts.MIDDLE_C))
+                synth.handleMessage(mido.Message('note_off', note=consts.A_440))
                 time.sleep(2)

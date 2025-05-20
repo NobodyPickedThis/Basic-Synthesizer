@@ -4,7 +4,7 @@ BUFFER_SIZE = 128
 DEVICE_NAME = 'MPKmini2'
 
 MAX_VOICES = 8
-MIDDLE_C = 69
+A_440 = 69
 
 WAVE_TYPE = "Saw"           #Supports "Sine" "Saw" or "Square"
 

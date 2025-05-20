@@ -21,7 +21,7 @@ class ADSR():
         self._release = int(float(release) * consts.BITRATE )
 
         # Used to fade between values when envelope changes to release at unexpected time
-        self._value = sustain
+        self._value = 0.0
 
         # Array initializations, ensure enough samples to prevent non-flat sustain and post-release buffers
         self._ADS_len = consts.BUFFER_SIZE + self._attack + self._decay
@@ -64,13 +64,12 @@ class ADSR():
             if i < self._release:
                 self._R_values[i] = ((-self._value / self._release) * i + self._value) ** 2
 
-
             # Silence buffer
             else:
                 self._R_values[i] = 0.0
 
     # Return envelope data, increment buffer chunk
-    def applyEnvelope(self, pre_env_data: np.array) -> np.array:
+    def applyEnvelope(self, pre_env_data):
 
         arr_size = len(pre_env_data)
         return_data = np.zeros(arr_size, float)
