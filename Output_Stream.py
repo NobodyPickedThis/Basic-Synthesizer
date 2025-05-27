@@ -71,8 +71,8 @@ class output:
     #Close stream
     def stop(self):
         self._current_data = self._silence
-        if self._debug_mode > 0:
-            print("Stopping stream")
+        #if self._debug_mode > 0:
+        #    print("Stopping stream")
         if self._stream is not None:
             self._stream.stop_stream()
             self._stream.close()

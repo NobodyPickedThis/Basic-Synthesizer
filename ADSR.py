@@ -4,7 +4,7 @@ import numpy as np
 
 from lib import consts
 
-
+# FIXME commented out debug statements to check efficiency
 
 # See https://www.desmos.com/calculator/nrn6oabn6h for preliminary math
 
@@ -24,9 +24,13 @@ class ADSR():
         self._value = 0.0
 
         # Array initializations, ensure enough samples to prevent non-flat sustain and post-release buffers
-        self._ADS_len = consts.BUFFER_SIZE + self._attack + self._decay
+        self._ADS_len = self._attack + self._decay
+        if self._ADS_len < consts.BUFFER_SIZE:
+            self._ADS_len += consts.BUFFER_SIZE % self._ADS_len
         self._ADS_values = np.zeros(self._ADS_len, dtype=float)        
-        self._R_len = consts.BUFFER_SIZE + self._release
+        self._R_len = self._release
+        if self._R_len < consts.BUFFER_SIZE:
+            self._R_len += consts.BUFFER_SIZE % self._R_len
         self._R_values = np.zeros(self._R_len, dtype=float)                  
 
         # Array populations
@@ -62,7 +66,7 @@ class ADSR():
 
             # Release segment
             if i < self._release:
-                self._R_values[i] = ((-self._value / self._release) * i + self._value) ** 2
+                self._R_values[i] = ((-self._sustain / self._release) * i + self._sustain)
 
             # Silence buffer
             else:
@@ -97,7 +101,8 @@ class ADSR():
                     
                     pos = self._position + i
                     if pos < self._release:
-                        return_data[i] = pre_env_data[i] * self._R_values[pos]
+                        return_data[i] = pre_env_data[i] * self._R_values[pos] * self._value    # This should be sustain if note was held long enough before
+                                                                                                # release, if not then this is the value it was at prior to release
                     else:
                         return_data[i] = 0.0
 
@@ -115,21 +120,20 @@ class ADSR():
 
     # Turn note on
     def start(self):
-        if self._debug_mode > 1:
-            print("Envelope state before start: ", self._state)
+        #if self._debug_mode > 1:
+        #    print("Envelope state before start: ", self._state)
         self._state = consts.ADS
-        if self._debug_mode > 1:
-            print("Envelope state after start: ", self._state)
+        #if self._debug_mode > 1:
+        #    print("Envelope state after start: ", self._state)
     # Change state from ADS to R, turn off if release is 0 immediately
     def release(self):
-        if self._debug_mode > 1:
-            print("Envelope state before release: ", self._state)
+        #if self._debug_mode > 1:
+        #    print("Envelope state before release: ", self._state)
         if self._state == consts.ADS:
             self._state = consts.R
             self._position = 0
-            self.generateR()
-        if self._debug_mode > 1:
-            print("Envelope state after release: ", self._state)
+        #if self._debug_mode > 1:
+        #    print("Envelope state after release: ", self._state)
 
     # Check state
     def isOn(self) -> bool:
@@ -139,16 +143,16 @@ class ADSR():
 
     # Reset envelope to initial state (for after it has been "used up")
     def reset(self):
-        if self._debug_mode > 1:
-            print("Envelope state before reset: ", self._state)
+        #if self._debug_mode > 1:
+        #    print("Envelope state before reset: ", self._state)
         self._ADS_values = np.zeros(self._ADS_len, dtype=float)
         self._R_values = np.zeros(self._R_len, dtype=float) 
         self.generateADS()
         self.generateR()
         self._state = consts.OFF
         self._position = 0
-        if self._debug_mode > 1:
-            print("Envelope state after reset: ", self._state)
+        #if self._debug_mode > 1:
+        #    print("Envelope state after reset: ", self._state)
 
     # Visualize envelope
     def drawEnvelope(self, plot, pos: int = 1) -> None:

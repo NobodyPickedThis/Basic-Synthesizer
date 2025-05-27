@@ -7,19 +7,18 @@
 
 
 =====FEATURES TO WORK ON=====
- 1) Apply MIDI CC to Synth parameters
+ 1) Filter    
+    - Should take midi CC value and pass all audio through before output but after
+        ADSR, again in "some way(tm)"
+    - Use low cut for oversampling and antialiasing to improve clarity (esp in sine wave)
+
+ 2) Apply MIDI CC to Synth parameters
     - Should be able to change (or interpolate between!) wave types, adjust amplitude
     - Be scalable for when more features are added
 
- 2) Filter    
-    - Should take midi CC value and pass all audio through before output but after
-        ADSR, again in "some way(tm)"
 
 
 =====ISSUES=====
- 1) Decouple MAX_VOICES from gain by using a conversion factor to compensate
-	for lower gain (of a single voice) using a higher voice limit. Basically,
-	a single voice should be the same volume regardless of voice cap.
 
  2) Sometimes there's an index out of range issue on line 111 of Synth.py when
 	near the voice limit. Implementing overriding of older voices should
