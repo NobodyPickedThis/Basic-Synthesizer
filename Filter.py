@@ -21,25 +21,76 @@ class Filter():
         if cutoff < consts.MIN_FREQ:
             self._cutoff = consts.MIN_FREQ
 
-        #Start with silence
-        self._output = np.zeros(consts.BUFFER_SIZE, np.float64)
+        # State variables
+        self._in_prev = 0.0       # Used for low cut filter
+        self._out_prev = 0.0      # Used for both high and low cut filter
 
-    def setCutoff(self, newCutoff: int = consts.CUTOFF):
-        self._cutoff = newCutoff
+        # Complicated math stuff abstracted into this function
+        self._alpha = 0.001
+        self.calculateCoefficients()
 
-    def use(self, signal):
+        # Effeciency
         match self._type:
             case consts.HI_CUT:
-                pass
+                self.use_type = self.hi_cut
             case consts.LOW_CUT:
-                return self.lowCut(signal)
+                self.use_type = self.low_cut
             case _:
                 raise Exception(ValueError)
 
-    def lowCut(self, input_signal: np.array) -> np.array:
-        a = float(math.e ** ((-2 * math.pi * self._cutoff) / consts.BITRATE))
-        self._output = ((1 - a) * input_signal) + (a * self._output)
+    def setCutoff(self, newCutoff: int = consts.CUTOFF):
+        self._cutoff = newCutoff
+        if self._cutoff > consts.MAX_FREQ:
+            self._cutoff = consts.MAX_FREQ
+        if self._cutoff < consts.MIN_FREQ:
+            self._cutoff = consts.MIN_FREQ
+        self.calculateCoefficients()
 
-        #print(f"a: {a}, output[0 - 10]: {self._output[:10]}, size of output: {len(self._output)}")
+    def calculateCoefficients(self):
+        
+        # Normalize cutoff freqency as a fraction of Nyquist frequency
+        normalized_cutoff = self._cutoff / consts.NYQUIST
 
-        return self._output
+        # Disallow 0 or 1 to prevent unintended behaviour
+        normalized_cutoff = max(0.001, min(0.999, normalized_cutoff))
+
+        # Cookbook formulae implementation
+        match self._type:
+            case consts.HI_CUT:
+                self._alpha = math.tan(math.pi * normalized_cutoff) / (1 + math.tan(math.pi * normalized_cutoff))
+            case consts.LOW_CUT:
+                self._alpha = 1.0 / (1 + math.tan(math.pi * normalized_cutoff))
+            case _:
+                raise Exception(ValueError)
+
+        
+
+    # Applies the appropriate filter to all samples of a buffer
+    def use(self, input_signal: np.array) -> np.array:
+        # Normalize
+        normalized_input = input_signal.astype(np.float64) / 32767.0
+        return (self.use_type(normalized_input) * 32767.0).astype(np.int16)
+
+    def hi_cut(self, input_signal: np.array) -> np.array:
+        output = np.zeros(consts.BUFFER_SIZE, np.float64)
+        # Iterate through input buffer, applying filter
+        for i in range(len(input_signal)):
+            output[i] = self._alpha * input_signal[i] + (1 - self._alpha) * self._out_prev
+            # Update state variables
+            self._in_prev = input_signal[i]
+            self._out_prev = max(-1.0, min(1.0, output[i]))
+        return output
+    
+    def low_cut(self, input_signal: np.array) -> np.array:
+        output = np.zeros(consts.BUFFER_SIZE, np.float64)
+        # Iterate through input buffer, applying filter
+        for i in range(len(input_signal)):
+            output[i] = self._alpha * (self._out_prev + input_signal[i] - self._in_prev)
+            # Update state variables
+            self._in_prev = input_signal[i]
+            self._out_prev = max(-1.0, min(1.0, output[i]))
+        return output
+
+        
+
+        

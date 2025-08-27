@@ -1,5 +1,6 @@
  # ========== REFERENCE VALUES ==========
 BITRATE = 44100
+NYQUIST = BITRATE / 2
 BUFFER_SIZE = 128
 
 DEVICE_NAME = 'MPKmini2'
@@ -39,12 +40,12 @@ DEBUG_MODE = 0              #0 --- No debug outputs
 # Supports "Sine" "Saw" or "Square"
 WAVE_TYPE = "Saw"           
 
-ATTACK =  0.350             # in s
-DECAY =   1.000             # in s
+ATTACK =  0.100             # in s
+DECAY =   0.200             # in s
 SUSTAIN = 1.000
-RELEASE = 1.350             # in s
+RELEASE = 0.500             # in s
 
 # Hz, 0 - 20000
-CUTOFF = 2000    
-FILTER_TYPE = LOW_CUT   
+CUTOFF = 200    
+FILTER_TYPE = HI_CUT   
 FILTER_ON = True       

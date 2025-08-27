@@ -28,7 +28,7 @@ class osc():
     #Generate phase-continuous samples
     def generateWavedata(self, n_samples: int = consts.BUFFER_SIZE, frequency: float = 200.00, MIDI: int = 0) -> list:
         
-        # Create enough samples to fill the requested buffer size
+        #Create enough samples to fill the requested buffer size
         samples = np.zeros(n_samples, dtype=float)
 
         #NOT the position as used for audio output, this tracks generation progress
@@ -53,7 +53,8 @@ class osc():
                 case _:
                     pass
 
-            #Advance phase, keep within reasonable range FIXME is the range adjustment necessary?
+            #Advance phase, keep within reasonable range 
+            #FIXME is the range adjustment necessary?
             generation_phase += (2 * math.pi * frequency) / consts.BITRATE
             if generation_phase > 2 * math.pi:
                 generation_phase -= 2 * math.pi

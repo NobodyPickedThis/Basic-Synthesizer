@@ -175,16 +175,13 @@ class Synth(MIDI.MIDI_device):
         #Mix all active voices
         for i in range(len(self._voices)):
             if self._voices[i] != UNUSED:
-
-                #Apply filter
-                voice_data = self._filter.use(self._osc[self._voices[i]])
-                mixed_buffer += (self._envelopes[i].applyEnvelope(voice_data).astype(np.float64) / consts.MAX_VOICES)
-
-                #Without filter
-                #mixed_buffer += (self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES)
+                mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
+                
+        #Apply filter
+        filtered_buffer = self._filter.use(mixed_buffer)
 
         #Convert to int16
-        return mixed_buffer.astype(np.int16)
+        return filtered_buffer.astype(np.int16)
     
     #Visualizes waveform and envelope
     def visualize(self) -> None:
