@@ -32,20 +32,18 @@ DEBUG_MODE = 0              #0 --- No debug outputs
                             #2 --- Verbose debug outputs
 
 
-
-
-
 # ========== TUNABLE PARAMETERS ==========
 
 # Supports "Sine" "Saw" or "Square"
 WAVE_TYPE = "Saw"           
 
-ATTACK =  0.100             # in s
+ATTACK =  0.010             # in s
 DECAY =   0.200             # in s
 SUSTAIN = 1.000
 RELEASE = 0.500             # in s
 
 # Hz, 0 - 20000
-CUTOFF = 200    
-FILTER_TYPE = HI_CUT   
+CUTOFF = 8000    
+Q = 0.707   # Default to 0.707
+FILTER_TYPE = HI_CUT  
 FILTER_ON = True       

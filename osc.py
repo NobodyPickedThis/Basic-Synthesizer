@@ -29,10 +29,10 @@ class osc():
     def generateWavedata(self, n_samples: int = consts.BUFFER_SIZE, frequency: float = 200.00, MIDI: int = 0) -> list:
         
         #Create enough samples to fill the requested buffer size
-        samples = np.zeros(n_samples, dtype=float)
+        samples = np.zeros(n_samples, dtype=np.float32)
 
         #NOT the position as used for audio output, this tracks generation progress
-        generation_phase = 0.0
+        generation_phase = 0.000
         
         #Generate correct sample for specified parameters
         for i in range(0, n_samples):

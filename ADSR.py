@@ -83,16 +83,14 @@ class ADSR():
                 for i in range(arr_size):
 
                     pos = self._position + i
-                    if pos < self._attack:
-                        env_val = float(pos / self._attack) ** 2
-                    elif pos < (self._attack + self._decay):
-                        env_val = (((self._sustain - 1) * (pos - self._attack)) / float(self._decay)) + 1
+                    if pos < self._ADS_len:
+                        env_val = self._ADS_values[pos]
                     else:
                         env_val = self._sustain
                         
                     return_data[i] = pre_env_data[i] * env_val
-                    self._value = env_val
-                    
+                
+                self._value = env_val    
                 self._position += arr_size
                 return return_data
 
@@ -101,7 +99,7 @@ class ADSR():
                     
                     pos = self._position + i
                     if pos < self._release:
-                        return_data[i] = pre_env_data[i] * self._R_values[pos] * self._value    # This should be sustain if note was held long enough before
+                        return_data[i] = pre_env_data[i] * (self._R_values[pos] / self._sustain) * self._value    # This should be sustain if note was held long enough before
                                                                                                 # release, if not then this is the value it was at prior to release
                     else:
                         return_data[i] = 0.0
@@ -127,13 +125,18 @@ class ADSR():
         #    print("Envelope state after start: ", self._state)
     # Change state from ADS to R, turn off if release is 0 immediately
     def release(self):
-        #if self._debug_mode > 1:
-        #    print("Envelope state before release: ", self._state)
         if self._state == consts.ADS:
+            #Capture current envelope value
+            if self._position < self._attack:
+                self._value = float(self._position / self._attack) ** 2
+            elif self._position < (self._attack + self._decay):
+                self._value = (((self._sustain - 1) * (self._position - self._attack)) / float(self._decay)) + 1
+            else:
+                self._value = self._sustain
+
+            #Switch state, resetting position
             self._state = consts.R
             self._position = 0
-        #if self._debug_mode > 1:
-        #    print("Envelope state after release: ", self._state)
 
     # Check state
     def isOn(self) -> bool:
