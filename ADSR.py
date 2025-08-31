@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 
 
@@ -22,6 +23,8 @@ class ADSR():
 
         # Used to fade between values when envelope changes to release at unexpected time
         self._value = 0.0
+
+        self._exp_release_coef = consts.EXPONENTIAL_RELEASE_COEFFICIENT
 
         # Array initializations, ensure enough samples to prevent non-flat sustain and post-release buffers
         self._ADS_len = self._attack + self._decay
@@ -70,7 +73,10 @@ class ADSR():
 
             # Release segment
             if i < self._release:
+                # Linear value
                 self._R_values[i] = ((-self._sustain / self._release) * i + self._sustain)
+                # Apply exponential decay function based on coefficient
+                self._R_values[i] =  self._R_values[i] * math.e ** (- self._exp_release_coef * (i / self._release))
 
             # Silence buffer
             else:

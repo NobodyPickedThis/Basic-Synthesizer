@@ -40,10 +40,14 @@ DEBUG_MODE = 0              #0 --- No debug outputs
 # Supports "Sine" "Saw" or "Square"
 WAVE_TYPE = "Saw"           
 
-ATTACK =  0.030            # in s
-DECAY =   0.200             # in s
+ATTACK =  0.005                         # in s
+DECAY =   0.200                         # in s
 SUSTAIN = 1.000
-RELEASE = 1.500             # in s
+RELEASE = 1.500                         # in s
+
+EXPONENTIAL_RELEASE_COEFFICIENT = 3.000 # 0: linear release
+                                        # 1: Standard exponential release
+                                        # >1: More dramatic exponential release
 
 # Hz, 0 - 20000
 CUTOFF = 5000    
