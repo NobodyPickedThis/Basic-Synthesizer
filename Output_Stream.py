@@ -50,6 +50,7 @@ class output:
         if self._debug_mode > 0:
             print(f"Found WASAPI API at index: {api}")
         
+        # FIXME make generic
         # Find your Focusrite device
         output_device = None
         if api is not None:
@@ -59,7 +60,7 @@ class output:
                     device_info['maxOutputChannels'] > 0 and
                     'focusrite' in device_info['name'].lower()):
                     output_device = i
-                    if self._debug_mode > 0:
+                    if self._debug_mode == 1 or self._debug_mode == 2:
                         print(f"Selected Focusrite device index: {output_device}")
                         print(f"Device details: {device_info}")
                     break

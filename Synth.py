@@ -26,6 +26,10 @@ UNUSED = -1
 class Synth(MIDI.MIDI_device):
     def __init__(self, wave_type: str = consts.WAVE_TYPE, debug_mode: int = consts.DEBUG_MODE, amplitude: float = 1.0, filter_type: str = consts.FILTER_TYPE, cutoff: int = consts.CUTOFF):
         
+        import time
+        start = time.perf_counter()
+
+
         super().__init__(consts.DEVICE_NAME)
         
         self._debug_mode = debug_mode #0 --- No debug outputs
@@ -33,9 +37,17 @@ class Synth(MIDI.MIDI_device):
                                       #2 --- Verbose debug outputs
                                       #3 --- Efficiency debug outputs
 
+        if self._debug_mode == 3:
+            base_class_timer = (time.perf_counter() - start)*1000
+            print(f"Base Class initialized in: {base_class_timer:.2f}ms")
+
         #Signal generation components
         self._amplitude = amplitude
         self._osc = osc.osc(wave_type)   #FIXME add parametric constructor support from midi CC
+
+        if self._debug_mode == 3:
+            osc_gen_timer = (time.perf_counter() - start)*1000
+            print(f"Oscillator bank populated in: {osc_gen_timer:.2f}ms")
         
         #Voice handler
         self._voices = []
@@ -45,11 +57,19 @@ class Synth(MIDI.MIDI_device):
         #Filter
         self._filter = Filter.Filter(cutoff, filter_type)
 
+        if self._debug_mode == 3:
+            filter_timer = (time.perf_counter() - start)*1000
+            print(f"Filter initialized in: {filter_timer:.2f}ms")
+
         #Envelope generator
         self._envelopes = []
         for e in range(consts.MAX_VOICES):
             self._envelopes.append(ADSR.ADSR(self._debug_mode))
             time.sleep(0.2)
+
+        if self._debug_mode == 3:
+            env_timer = (time.perf_counter() - start)*1000
+            print(f"Envelopes initialized in: {env_timer:.2f}ms")
 
         #Mtof and Mton converters, just in case
         self._mtof = mtof.mtof()
@@ -58,6 +78,10 @@ class Synth(MIDI.MIDI_device):
         #Visualizer class and output waveform list
         self._visualizer = Waveform_Visualizer.Plot()
 
+        if self._debug_mode == 3:
+            vis_timer = (time.perf_counter() - start)*1000
+            print(f"Visualizer initialized in: {vis_timer:.2f}ms")
+
         #Initialize output stream
         self._output = Output_Stream.output(self._debug_mode)
         #Only use debug buffer provider if debug enabled
@@ -65,6 +89,10 @@ class Synth(MIDI.MIDI_device):
             self._output.play(self.getDebugAudioBuffer)
         else:
             self._output.play(self.getAudioBuffer)
+
+        if self._debug_mode == 3:
+            out_stream_timer = (time.perf_counter() - start)*1000
+            print(f"Output stream initialized in: {out_stream_timer:.2f}ms")
 
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
@@ -153,7 +181,6 @@ class Synth(MIDI.MIDI_device):
             if self._debug_mode > 0:
                 print(f"VOICE OVERFLOW: {active_count} active, dropping note {new_voice}")
             return
-
     def releaseVoice(self, rel_voice: int = 0):
         
         #Only allow valid voices
