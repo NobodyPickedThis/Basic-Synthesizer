@@ -60,10 +60,12 @@ class ADSR():
 
             # Decay segment
             elif i < (self._attack + self._decay):
+                #Decay progress
+                decay_position = (i - self._attack) / self._decay
                 # Linear value
-                self._ADS_values[i] = (((self._sustain - 1) * (i - self._attack)) / float(self._decay)) + 1
+                linear_value = (1 - decay_position) + (self._sustain * decay_position)
                 # Apply exponential decay function based on coefficient
-                self._ADS_values[i] = self._ADS_values[i] * math.e ** (- self._exp_release_coef * (i / self._release))
+                self._ADS_values[i] = max(linear_value * math.e ** (- self._exp_release_coef * decay_position), self._sustain)
 
             # Sustain buffer
             else:
@@ -72,12 +74,14 @@ class ADSR():
     # Populate R values
     def generateR(self):
         
+        safety_sustain = max(self._sustain, 0.00000000001)
+
         for i in range(self._R_values.size):
 
             # Release segment
             if i < self._release:
                 # Linear value
-                self._R_values[i] = ((-self._sustain / self._release) * i + self._sustain)
+                self._R_values[i] = ((-safety_sustain / self._release) * i + safety_sustain)
                 # Apply exponential decay function based on coefficient
                 self._R_values[i] =  self._R_values[i] * math.e ** (- self._exp_release_coef * (i / self._release))
 
@@ -109,13 +113,13 @@ class ADSR():
             case consts.R:
 
                 #Prevent math issues when sustain is 0
-                scale_factor = self._value / self._sustain if self._sustain > 0 else 0
+                scale_factor = self._value / max(self._sustain, 0.00000000001)
 
                 for i in range(consts.BUFFER_SIZE):
                     pos = self._position + i
                     if pos < self._release:
                         return_data[i] = pre_env_data[i] * scale_factor * self._R_values[pos]    # This should be sustain if note was held long enough before
-                                                                                                # release, if not then this is the value it was at prior to release
+                                                                                                 # release, if not then this is the value it was at prior to release
                     else:
                         return_data[i] = 0.0
 
@@ -142,10 +146,8 @@ class ADSR():
     def release(self):
         if self._state == consts.ADS:
             #Capture current envelope value
-            if self._position < self._attack:
-                self._value = float(self._position / self._attack) ** 2
-            elif self._position < (self._attack + self._decay):
-                self._value = (((self._sustain - 1) * (self._position - self._attack)) / float(self._decay)) + 1
+            if self._position < self._ADS_len:
+                self._value = self._ADS_values[self._position]
             else:
                 self._value = self._sustain
 

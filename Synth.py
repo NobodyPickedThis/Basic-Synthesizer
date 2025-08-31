@@ -61,7 +61,6 @@ class Synth(MIDI.MIDI_device):
         self._envelopes = []
         for e in range(consts.MAX_VOICES):
             self._envelopes.append(ADSR.ADSR(self._debug_mode))
-            time.sleep(0.2)
 
         if self._debug_mode == 3:
             env_timer = time.perf_counter() - start
