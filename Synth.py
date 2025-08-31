@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import mido
+import copy
 
 import MIDI_input as MIDI
 import Output_Stream
@@ -59,8 +60,9 @@ class Synth(MIDI.MIDI_device):
 
         #Envelope generator
         self._envelopes = []
+        envelope = ADSR.ADSR(self._debug_mode)
         for e in range(consts.MAX_VOICES):
-            self._envelopes.append(ADSR.ADSR(self._debug_mode))
+            self._envelopes.append(copy.deepcopy(envelope))
 
         if self._debug_mode == 3:
             env_timer = time.perf_counter() - start
@@ -171,7 +173,7 @@ class Synth(MIDI.MIDI_device):
                 self._voices[i] = new_voice
                 return
             
-        # If no duplicate or UNUSED voices, then find the oldest released voice and steal it
+        # If no duplicate or UNUSED voices, then find the oldest released voice
         oldest = 0
         for i in range(1, consts.MAX_VOICES):
             if self._envelopes[i].isOff() and not self._envelopes[oldest].isOff():
@@ -180,15 +182,21 @@ class Synth(MIDI.MIDI_device):
             self._voices[oldest] = new_voice
             self._envelopes[oldest].reset()
             self._envelopes[oldest].start()
-            if self._debug_mode > 0:
-                print(f"Stole voice at index {oldest}")
+            if self._debug_mode == 0 or self._debug_mode == 2:
+                print(f"Replaced oldest unused voice at index {oldest}")
             return
         
-        # If all voices are busy do nothing
-        if i >= consts.MAX_VOICES:
-            if self._debug_mode > 0:
-                print(f"VOICE OVERFLOW: {active_count} active, dropping note {new_voice}")
-            return
+        # If all voices are busy, then replace the quietest one with the new note
+        quietest = 0
+        for i in range(1, consts.MAX_VOICES):
+            if self._envelopes[i]._value < self._envelopes[quietest]._value:
+                quietest = i
+        self._voices[quietest] = new_voice
+        self._envelopes[quietest].reset()
+        self._envelopes[quietest].start()
+        if self._debug_mode == 0 or self._debug_mode == 2:
+            print(f"Stole voice from index {quietest}")
+        return
     def releaseVoice(self, rel_voice: int = 0):
         
         #Only allow valid voices
