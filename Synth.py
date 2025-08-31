@@ -26,7 +26,6 @@ UNUSED = -1
 class Synth(MIDI.MIDI_device):
     def __init__(self, wave_type: str = consts.WAVE_TYPE, debug_mode: int = consts.DEBUG_MODE, amplitude: float = 1.0, filter_type: str = consts.FILTER_TYPE, cutoff: int = consts.CUTOFF):
         
-        import time
         start = time.perf_counter()
 
 
@@ -38,16 +37,14 @@ class Synth(MIDI.MIDI_device):
                                       #3 --- Efficiency debug outputs
 
         if self._debug_mode == 3:
-            base_class_timer = (time.perf_counter() - start)*1000
-            print(f"Base Class initialized in: {base_class_timer:.2f}ms")
+            base_class_timer = time.perf_counter() - start
 
         #Signal generation components
         self._amplitude = amplitude
         self._osc = osc.osc(wave_type)   #FIXME add parametric constructor support from midi CC
 
         if self._debug_mode == 3:
-            osc_gen_timer = (time.perf_counter() - start)*1000
-            print(f"Oscillator bank populated in: {osc_gen_timer:.2f}ms")
+            osc_gen_timer = time.perf_counter() - start
         
         #Voice handler
         self._voices = []
@@ -58,8 +55,7 @@ class Synth(MIDI.MIDI_device):
         self._filter = Filter.Filter(cutoff, filter_type)
 
         if self._debug_mode == 3:
-            filter_timer = (time.perf_counter() - start)*1000
-            print(f"Filter initialized in: {filter_timer:.2f}ms")
+            filter_timer = time.perf_counter() - start
 
         #Envelope generator
         self._envelopes = []
@@ -68,19 +64,20 @@ class Synth(MIDI.MIDI_device):
             time.sleep(0.2)
 
         if self._debug_mode == 3:
-            env_timer = (time.perf_counter() - start)*1000
-            print(f"Envelopes initialized in: {env_timer:.2f}ms")
+            env_timer = time.perf_counter() - start
 
         #Mtof and Mton converters, just in case
         self._mtof = mtof.mtof()
         self._mton = mtof.mton()
+
+        if self._debug_mode == 3:
+            midi_conv_timer = time.perf_counter() - start
         
         #Visualizer class and output waveform list
         self._visualizer = Waveform_Visualizer.Plot()
 
         if self._debug_mode == 3:
-            vis_timer = (time.perf_counter() - start)*1000
-            print(f"Visualizer initialized in: {vis_timer:.2f}ms")
+            vis_timer = time.perf_counter() - start
 
         #Initialize output stream
         self._output = Output_Stream.output(self._debug_mode)
@@ -91,8 +88,20 @@ class Synth(MIDI.MIDI_device):
             self._output.play(self.getAudioBuffer)
 
         if self._debug_mode == 3:
-            out_stream_timer = (time.perf_counter() - start)*1000
-            print(f"Output stream initialized in: {out_stream_timer:.2f}ms")
+            out_stream_timer = time.perf_counter() - start
+            print()
+            print(f"====================BOOTUP=INFO====================")
+            print()
+            print(f"\tBase Class initialized in: {(1000 * base_class_timer):.2f}ms")
+            print(f"\tOscillator bank populated in: {(1000 * (osc_gen_timer - base_class_timer)):.2f}ms")
+            print(f"\tFilter initialized in: {(1000 * (filter_timer - osc_gen_timer)):.2f}ms")
+            print(f"\tEnvelopes initialized in: {(1000 * (env_timer - filter_timer)):.2f}ms")
+            print(f"\tMIDI converters initialized in: {(1000 * (midi_conv_timer - env_timer)):.2f}ms")
+            print(f"\tVisualizer initialized in: {(1000 * (vis_timer - midi_conv_timer)):.2f}ms")
+            print(f"\tOutput stream initialized in: {(1000 * (out_stream_timer - vis_timer)):.2f}ms")
+            print()
+            print(f"TOTAL INTERNAL BOOT TIME: {(1000 * out_stream_timer):.2f}ms ({(out_stream_timer):.2f}s)")
+            print(f"===================================================")
 
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
@@ -152,7 +161,7 @@ class Synth(MIDI.MIDI_device):
             if self._voices[i] == new_voice:
                 self._envelopes[i].reset()
                 self._envelopes[i].start()
-                if self._debug_mode > 0:
+                if self._debug_mode == 2:
                     print(f"Retriggering voice {new_voice} at index {i}")
                 return
 
@@ -235,7 +244,6 @@ class Synth(MIDI.MIDI_device):
         return filtered_buffer.astype(np.int16)
     def getDebugAudioBuffer(self):
 
-        import time
         start = time.perf_counter()
             
         #Ensure finished voices are set as such
@@ -268,6 +276,7 @@ class Synth(MIDI.MIDI_device):
 
 #Runs the synth
 if __name__ == "__main__":
+
     synth = Synth()
     synth.printAllMIDIDevices()
 

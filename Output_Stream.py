@@ -48,20 +48,20 @@ class output:
                 break
         
         if self._debug_mode > 0:
-            print(f"Found WASAPI API at index: {api}")
+            print(f"Found {consts.AUDIO_API} API at index: {api}")
         
-        # FIXME make generic
-        # Find your Focusrite device
+        # Find your interface/output device
         output_device = None
         if api is not None:
             for i in range(self._p.get_device_count()):
                 device_info = self._p.get_device_info_by_index(i)
                 if (device_info['hostApi'] == api and 
                     device_info['maxOutputChannels'] > 0 and
-                    'focusrite' in device_info['name'].lower()):
+                    consts.INTERFACE_NAME in device_info['name'].lower()):
                     output_device = i
-                    if self._debug_mode == 1 or self._debug_mode == 2:
-                        print(f"Selected Focusrite device index: {output_device}")
+                    if self._debug_mode > 1:
+                        print(f"Selected {consts.INTERFACE_NAME} device index: {output_device}")
+                    if self._debug_mode == 2:
                         print(f"Device details: {device_info}")
                     break
         

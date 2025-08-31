@@ -4,6 +4,7 @@ NYQUIST = BITRATE / 2
 BUFFER_SIZE = 128
 
 DEVICE_NAME = 'MPKmini2'
+INTERFACE_NAME = 'Focusrite'
 AUDIO_API = 'WASAPI'
 
 MAX_VOICES = 8
@@ -28,7 +29,7 @@ MIN_FREQ = 0
 
 NUM_GRAPHS = 2
 
-DEBUG_MODE = 3              #0 --- No debug outputs
+DEBUG_MODE = 0              #0 --- No debug outputs
                             #1 --- Simple debug outputs
                             #2 --- Verbose debug outputs
                             #3 --- Efficiency debug outputs
@@ -42,10 +43,10 @@ WAVE_TYPE = "Saw"
 ATTACK =  0.030            # in s
 DECAY =   0.200             # in s
 SUSTAIN = 1.000
-RELEASE = 0.500             # in s
+RELEASE = 1.500             # in s
 
 # Hz, 0 - 20000
-CUTOFF = 8000    
+CUTOFF = 5000    
 Q = 0.707   # Default to 0.707
 FILTER_TYPE = HI_CUT  
 FILTER_ON = True       

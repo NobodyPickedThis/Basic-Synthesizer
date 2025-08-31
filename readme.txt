@@ -3,7 +3,9 @@
 
  2) Install dependencies using pip (numpy, matplotlib, mido, pyaudio)
 
- 3) Run Synth.py
+ 3) Configure consts.py to recognize your hardware
+
+ 4) Run Synth.py
 
 
 =====FEATURES TO WORK ON=====
