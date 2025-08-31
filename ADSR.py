@@ -36,10 +36,14 @@ class ADSR():
         # Array populations
         self.generateADS()
         self.generateR()
+        self._empty_buffer = np.zeros(consts.BUFFER_SIZE, float)
 
         # Track which partition of envelope to use
         self._state = consts.OFF
         self._position = 0
+
+        # Flag for dynamically updating parameters during runtime
+        self._old_params = False
 
         self._debug_mode = debug_mode
 
@@ -75,12 +79,11 @@ class ADSR():
     # Return envelope data, increment buffer chunk
     def applyEnvelope(self, pre_env_data):
 
-        arr_size = len(pre_env_data)
-        return_data = np.zeros(arr_size, float)
+        return_data = self._empty_buffer
 
         match self._state:
             case consts.ADS:
-                for i in range(arr_size):
+                for i in range(consts.BUFFER_SIZE):
 
                     pos = self._position + i
                     if pos < self._ADS_len:
@@ -91,25 +94,28 @@ class ADSR():
                     return_data[i] = pre_env_data[i] * env_val
                 
                 self._value = env_val    
-                self._position += arr_size
+                self._position += consts.BUFFER_SIZE
                 return return_data
 
             case consts.R:
-                for i in range(arr_size):
-                    
+
+                #Prevent math issues when sustain is 0
+                scale_factor = self._value / self._sustain if self._sustain > 0 else 0
+
+                for i in range(consts.BUFFER_SIZE):
                     pos = self._position + i
                     if pos < self._release:
-                        return_data[i] = pre_env_data[i] * (self._R_values[pos] / self._sustain) * self._value    # This should be sustain if note was held long enough before
+                        return_data[i] = pre_env_data[i] * scale_factor * self._R_values[pos]    # This should be sustain if note was held long enough before
                                                                                                 # release, if not then this is the value it was at prior to release
                     else:
                         return_data[i] = 0.0
 
-                self._position += arr_size
+                self._position += consts.BUFFER_SIZE
 
                 # Turn off envelope if complete
                 if self._position >= self._release:
                     self.reset()
-                    return np.zeros(arr_size, float)
+                    return np.zeros(consts.BUFFER_SIZE, float)
 
                 return return_data
 
@@ -148,12 +154,14 @@ class ADSR():
     def reset(self):
         #if self._debug_mode > 1:
         #    print("Envelope state before reset: ", self._state)
-        self._ADS_values = np.zeros(self._ADS_len, dtype=float)
-        self._R_values = np.zeros(self._R_len, dtype=float) 
-        self.generateADS()
-        self.generateR()
+        if self._old_params:
+            self._ADS_values = np.zeros(self._ADS_len, dtype=float)
+            self._R_values = np.zeros(self._R_len, dtype=float) 
+            self.generateADS()
+            self.generateR()
         self._state = consts.OFF
         self._position = 0
+        self._value = 0.0
         #if self._debug_mode > 1:
         #    print("Envelope state after reset: ", self._state)
 

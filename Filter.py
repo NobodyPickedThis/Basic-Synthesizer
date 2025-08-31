@@ -80,8 +80,8 @@ class Filter():
     # Applies the filter to all samples of a buffer
     def use(self, input_signal: np.array) -> np.array:
         # Normalize input to ±1.0
-        normalized_input = input_signal.astype(np.float64) / 32767.0
-        output = np.zeros(consts.BUFFER_SIZE, np.float64)
+        normalized_input = input_signal.astype(np.float32) / 32767.0
+        output = np.zeros(consts.BUFFER_SIZE, np.float32)
 
         for i in range(consts.BUFFER_SIZE):
             current_input = normalized_input[i]

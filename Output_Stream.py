@@ -6,7 +6,8 @@ import numpy as np
 class output:
 
     #Initialize pyaudio output stream
-    def __init__(self, debug_mode: int = 0):
+    def __init__(self, debug_mode: int = consts.DEBUG_MODE):
+
         self._p = pyaudio.PyAudio()     
         self._stream = None
         self._isPlaying = False
@@ -14,6 +15,12 @@ class output:
         self._debug_mode = debug_mode #0 --- No debug outputs
                                       #1 --- Simple debug outputs
                                       #2 --- Verbose debug outputs
+
+        #Check output device
+        if self._debug_mode > 0:
+            # Print default device info
+            default_info = self._p.get_default_output_device_info()
+            print(f"Using device: {default_info['name']}")
 
         self._silence = np.zeros(consts.BUFFER_SIZE, np.int16)
 
@@ -28,8 +35,38 @@ class output:
 
     #Initialize stream and callback
     def initStream(self, buffer_provider):
+        #Link to the audio created in the synth
         self._buffer_provider = buffer_provider
+
+        # Find WASAPI API
+        api = None
+        for i in range(self._p.get_host_api_count()):
+            api_info = self._p.get_host_api_info_by_index(i)
+            if consts.AUDIO_API in api_info['name']:
+                api = i
+                break
         
+        if self._debug_mode > 0:
+            print(f"Found WASAPI API at index: {api}")
+        
+        # Find your Focusrite device
+        output_device = None
+        if api is not None:
+            for i in range(self._p.get_device_count()):
+                device_info = self._p.get_device_info_by_index(i)
+                if (device_info['hostApi'] == api and 
+                    device_info['maxOutputChannels'] > 0 and
+                    'focusrite' in device_info['name'].lower()):
+                    output_device = i
+                    if self._debug_mode > 0:
+                        print(f"Selected Focusrite device index: {output_device}")
+                        print(f"Device details: {device_info}")
+                    break
+        
+        # Try opening with explicit parameters for debugging
+        if self._debug_mode > 0:
+            print(f"Attempting to open stream with device {output_device}")
+
         # Define the callback
         def stream_callback(in_data, frame_count, time_info, status):
             if not self._isPlaying or self._buffer_provider is None:
@@ -51,6 +88,7 @@ class output:
                 channels=1,
                 rate=consts.BITRATE,
                 output=True,
+                output_device_index=output_device,
                 stream_callback=stream_callback,
                 frames_per_buffer=consts.BUFFER_SIZE
             )

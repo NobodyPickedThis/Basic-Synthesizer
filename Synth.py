@@ -24,17 +24,13 @@ UNUSED = -1
 #   -         Filter (Filter)
 #
 class Synth(MIDI.MIDI_device):
-    def __init__(self, wave_type: str = consts.WAVE_TYPE, debug_mode: int = 0, amplitude: float = 1.0, filter_type: str = consts.FILTER_TYPE, cutoff: int = consts.CUTOFF):
+    def __init__(self, wave_type: str = consts.WAVE_TYPE, debug_mode: int = consts.DEBUG_MODE, amplitude: float = 1.0, filter_type: str = consts.FILTER_TYPE, cutoff: int = consts.CUTOFF):
         
         super().__init__(consts.DEVICE_NAME)
         
         self._debug_mode = debug_mode #0 --- No debug outputs
                                       #1 --- Simple debug outputs
                                       #2 --- Verbose debug outputs
-        
-        #Initialize output stream
-        self._output = Output_Stream.output(self._debug_mode)
-        self._output.play(self.getAudioBuffer)
 
         #Signal generation components
         self._amplitude = amplitude
@@ -44,7 +40,7 @@ class Synth(MIDI.MIDI_device):
         self._voices = []
         for i in range(consts.MAX_VOICES):
             self._voices.append(UNUSED)
-
+        
         #Filter
         self._filter = Filter.Filter(cutoff, filter_type)
 
@@ -60,6 +56,10 @@ class Synth(MIDI.MIDI_device):
         
         #Visualizer class and output waveform list
         self._visualizer = Waveform_Visualizer.Plot()
+
+        #Initialize output stream
+        self._output = Output_Stream.output(self._debug_mode)
+        self._output.play(self.getAudioBuffer)
 
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
@@ -166,6 +166,10 @@ class Synth(MIDI.MIDI_device):
     #Consolidate audio from wavetable and voice list to a buffer for next step in signal chain
     def getAudioBuffer(self):
 
+        #For debugging efficiency, keep commented when not using
+        #import time
+        #start = time.perf_counter()
+            
         #Ensure finished voices are set as such
         self.pruneVoices()
 
@@ -179,6 +183,11 @@ class Synth(MIDI.MIDI_device):
                 
         #Apply filter
         filtered_buffer = self._filter.use(mixed_buffer)
+
+        #if self._debug_mode > 0:
+        #    ms = (time.perf_counter() - start)*1000
+        #    if ms > 2:
+        #        print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
 
         #Convert to int16
         return filtered_buffer.astype(np.int16)

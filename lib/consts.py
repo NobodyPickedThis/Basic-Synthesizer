@@ -1,9 +1,10 @@
  # ========== REFERENCE VALUES ==========
-BITRATE = 44100
+BITRATE = 48000
 NYQUIST = BITRATE / 2
 BUFFER_SIZE = 128
 
 DEVICE_NAME = 'MPKmini2'
+AUDIO_API = 'WASAPI'
 
 MAX_VOICES = 8
 A_440 = 69
@@ -27,7 +28,7 @@ MIN_FREQ = 0
 
 NUM_GRAPHS = 2
 
-DEBUG_MODE = 0              #0 --- No debug outputs
+DEBUG_MODE = 1              #0 --- No debug outputs
                             #1 --- Simple debug outputs
                             #2 --- Verbose debug outputs
 
@@ -37,7 +38,7 @@ DEBUG_MODE = 0              #0 --- No debug outputs
 # Supports "Sine" "Saw" or "Square"
 WAVE_TYPE = "Saw"           
 
-ATTACK =  0.010             # in s
+ATTACK =  0.030            # in s
 DECAY =   0.200             # in s
 SUSTAIN = 1.000
 RELEASE = 0.500             # in s
