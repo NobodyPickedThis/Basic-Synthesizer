@@ -29,10 +29,10 @@ MIN_FREQ = 0
 
 NUM_GRAPHS = 2
 
-DEBUG_MODE = 0              #0 --- No debug outputs
+DEBUG_MODE = 3              #0 --- No debug outputs
                             #1 --- Simple debug outputs
                             #2 --- Verbose debug outputs
-                            #3 --- Efficiency debug outputs
+                            #3 --- Efficiency debug outputs (Does not include many other debug outputs)
 
 
 # ========== TUNABLE PARAMETERS ==========
@@ -41,11 +41,11 @@ DEBUG_MODE = 0              #0 --- No debug outputs
 WAVE_TYPE = "Saw"           
 
 ATTACK =  0.005                         # in s
-DECAY =   0.200                         # in s
-SUSTAIN = 1.000
+DECAY =   3.800                         # in s
+SUSTAIN = 0.000                         # Amplitude coefficient from 0 to 1
 RELEASE = 1.500                         # in s
 
-EXPONENTIAL_RELEASE_COEFFICIENT = 3.000 # 0: linear release
+EXPONENTIAL_DECAY_COEFFICIENT = 3.000 # 0: linear release
                                         # 1: Standard exponential release
                                         # >1: More dramatic exponential release
 
