@@ -15,6 +15,7 @@ class output:
         self._debug_mode = debug_mode #0 --- No debug outputs
                                       #1 --- Simple debug outputs
                                       #2 --- Verbose debug outputs
+                                      #3 --- Efficiency debug outputs
 
         #Check output device
         if self._debug_mode > 0:
@@ -75,7 +76,7 @@ class output:
             # Get fresh data from the buffer provider
             new_data = self._buffer_provider()
             
-            #if self._debug_mode > 1:
+            #if self._debug_mode == 2:
             #    print(f"Callback getting fresh data from provider")
             #    print(f"First few samples: {new_data[:5]}")
             

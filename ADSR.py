@@ -124,10 +124,10 @@ class ADSR():
 
     # Turn note on
     def start(self):
-        #if self._debug_mode > 1:
+        #if self._debug_mode == 2:
         #    print("Envelope state before start: ", self._state)
         self._state = consts.ADS
-        #if self._debug_mode > 1:
+        #if self._debug_mode == 2:
         #    print("Envelope state after start: ", self._state)
     # Change state from ADS to R, turn off if release is 0 immediately
     def release(self):
@@ -152,7 +152,7 @@ class ADSR():
 
     # Reset envelope to initial state (for after it has been "used up")
     def reset(self):
-        #if self._debug_mode > 1:
+        #if self._debug_mode == 2:
         #    print("Envelope state before reset: ", self._state)
         if self._old_params:
             self._ADS_values = np.zeros(self._ADS_len, dtype=float)
@@ -162,7 +162,7 @@ class ADSR():
         self._state = consts.OFF
         self._position = 0
         self._value = 0.0
-        #if self._debug_mode > 1:
+        #if self._debug_mode == 2:
         #    print("Envelope state after reset: ", self._state)
 
     # Visualize envelope

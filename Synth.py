@@ -31,6 +31,7 @@ class Synth(MIDI.MIDI_device):
         self._debug_mode = debug_mode #0 --- No debug outputs
                                       #1 --- Simple debug outputs
                                       #2 --- Verbose debug outputs
+                                      #3 --- Efficiency debug outputs
 
         #Signal generation components
         self._amplitude = amplitude
@@ -59,13 +60,17 @@ class Synth(MIDI.MIDI_device):
 
         #Initialize output stream
         self._output = Output_Stream.output(self._debug_mode)
-        self._output.play(self.getAudioBuffer)
+        #Only use debug buffer provider if debug enabled
+        if self._debug_mode == 3:
+            self._output.play(self.getDebugAudioBuffer)
+        else:
+            self._output.play(self.getAudioBuffer)
 
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
 
         #Comment out to improve performance
-        if self._debug_mode > 1:
+        if self._debug_mode == 2:
             print("Synth MIDI Callback entered")
 
         #Update oscillator based on new frequency and trigger ADSR start
@@ -100,7 +105,7 @@ class Synth(MIDI.MIDI_device):
         #FIXME outside of scope for now, but maybe worth looking into later
         #(map parameters to MIDI CC rather than a GUI...?)
         elif message.type == 'control_change':
-            if self._debug_mode > 1:
+            if self._debug_mode == 2:
                 print(f"Control Change: {message.control}, Value: {message.value}")
 
     #Voice management
@@ -111,25 +116,44 @@ class Synth(MIDI.MIDI_device):
                 print("Invalid voice value, no new voice added")
             return
         
-        #Find location for new voice, within voice limit. Repeat voices should retrigger their ADSR rather than add a new voice
-        i = 0
-        while self._voices[i] != UNUSED and i < consts.MAX_VOICES:
+        # Count active voices for debugging
+        active_count = sum(1 for v in self._voices if v != UNUSED)
+        
+        # First check for duplicate voices:
+        for i in range(consts.MAX_VOICES):
             if self._voices[i] == new_voice:
                 self._envelopes[i].reset()
                 self._envelopes[i].start()
                 if self._debug_mode > 0:
-                    print("Redundant voice detected, resetting envelope")
+                    print(f"Retriggering voice {new_voice} at index {i}")
                 return
-            i += 1
+
+        # Next find UNUSED voices
+        for i in range(consts.MAX_VOICES):
+            if self._voices[i] == UNUSED:
+                self._envelopes[i].start()
+                self._voices[i] = new_voice
+                return
+            
+        # If no duplicate or UNUSED voices, then find the oldest released voice and steal it
+        oldest = 0
+        for i in range(1, consts.MAX_VOICES):
+            if self._envelopes[i].isOff() and not self._envelopes[oldest].isOff():
+                oldest = i
+        if self._envelopes[oldest].isOff():
+            self._voices[oldest] = new_voice
+            self._envelopes[oldest].reset()
+            self._envelopes[oldest].start()
+            if self._debug_mode > 0:
+                print(f"Stole voice at index {oldest}")
+            return
+        
+        # If all voices are busy do nothing
         if i >= consts.MAX_VOICES:
             if self._debug_mode > 0:
-                print("Maximum voices exceeded, no new voice added")
+                print(f"VOICE OVERFLOW: {active_count} active, dropping note {new_voice}")
             return
 
-        #Update register, turn on envelope
-        self._envelopes[i].start()
-        self._voices[i] = new_voice
-        return
     def releaseVoice(self, rel_voice: int = 0):
         
         #Only allow valid voices
@@ -147,28 +171,24 @@ class Synth(MIDI.MIDI_device):
                 print("Voice was not active, nothing to release")
             return
         
-        if self._debug_mode > 1:
+        if self._debug_mode == 2:
             print("Voice before release: ", self._voices[i])
 
         #Turn envelope to release phase
         self._envelopes[i].release()
 
-        if self._debug_mode > 1:
+        if self._debug_mode == 2:
             print("Voice after release: ", self._voices[i])
         return
     def pruneVoices(self):
         for i in range(consts.MAX_VOICES):
             if self._voices[i] != UNUSED and self._envelopes[i].isOff():
                 self._voices[i] = UNUSED
-                #if self._debug_mode > 1:
+                #if self._debug_mode == 2:
                 #    print(f"Removing finished voice at index {i}")
             
     #Consolidate audio from wavetable and voice list to a buffer for next step in signal chain
     def getAudioBuffer(self):
-
-        #For debugging efficiency, keep commented when not using
-        #import time
-        #start = time.perf_counter()
             
         #Ensure finished voices are set as such
         self.pruneVoices()
@@ -184,10 +204,30 @@ class Synth(MIDI.MIDI_device):
         #Apply filter
         filtered_buffer = self._filter.use(mixed_buffer)
 
-        #if self._debug_mode > 0:
-        #    ms = (time.perf_counter() - start)*1000
-        #    if ms > 2:
-        #        print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
+        #Convert to int16
+        return filtered_buffer.astype(np.int16)
+    def getDebugAudioBuffer(self):
+
+        import time
+        start = time.perf_counter()
+            
+        #Ensure finished voices are set as such
+        self.pruneVoices()
+
+        #Start with silence
+        mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.float64)
+    
+        #Mix all active voices
+        for i in range(len(self._voices)):
+            if self._voices[i] != UNUSED:
+                mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
+                
+        #Apply filter
+        filtered_buffer = self._filter.use(mixed_buffer)
+
+        ms = (time.perf_counter() - start)*1000
+        if ms > 2:
+            print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
 
         #Convert to int16
         return filtered_buffer.astype(np.int16)

@@ -10,7 +10,6 @@
  1) Filter    
     - Should take midi CC value and pass all audio through before output but after
         ADSR, again in "some way(tm)"
-    - Use low cut for oversampling and antialiasing to improve clarity (esp in sine wave)
 
  2) Apply MIDI CC to Synth parameters
     - Should be able to change (or interpolate between!) wave types, adjust amplitude
@@ -20,8 +19,6 @@
 
 =====ISSUES=====
 
- 2) Sometimes there's an index out of range issue on line 111 of Synth.py when
-	near the voice limit. Implementing overriding of older voices should
-	help get rid of this.
+ 1) Tone is still colored, most notable when using Sine.
 
- 3) Tone is still colored, most notable when using Sine.
+ 2) Filter is only 2-pole
