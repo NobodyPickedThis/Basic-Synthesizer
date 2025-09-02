@@ -42,16 +42,16 @@ DEBUG_MODE = 0              #0 --- No debug outputs
 WAVE_TYPE = "Saw"           
 
 ATTACK =  0.005                         # in s
-DECAY =   3.800                         # in s
-SUSTAIN = 0.000                         # Amplitude coefficient from 0 to 1
-RELEASE = 1.500                         # in s
+DECAY =   0.500                         # in s
+SUSTAIN = 1.000                         # Amplitude coefficient from 0 to 1
+RELEASE = 0.100                         # in s
 
 EXPONENTIAL_DECAY_COEFFICIENT = 3.000 # 0: linear release
                                         # 1: Standard exponential release
                                         # >1: More dramatic exponential release
 
 # Hz, 0 - 20000
-CUTOFF = 1000    
+CUTOFF = 2000    
 Q = 0.707   # Default to 0.707
 FILTER_TYPE = HI_CUT  
-FILTER_ON = True       
+FILTER_ON = False       

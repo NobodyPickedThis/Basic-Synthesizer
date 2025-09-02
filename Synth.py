@@ -183,7 +183,7 @@ class Synth(MIDI.MIDI_device):
             self._voices[oldest] = new_voice
             self._envelopes[oldest].reset()
             self._envelopes[oldest].start()
-            if self._debug_mode == 0 or self._debug_mode == 2:
+            if self._debug_mode == 1 or self._debug_mode == 2:
                 print(f"Replaced oldest unused voice at index {oldest}")
             return
         
@@ -246,10 +246,14 @@ class Synth(MIDI.MIDI_device):
                 mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
                 
         #Apply filter
-        filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
+        if consts.FILTER_ON:
+            filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
+            #Convert to int16
+            return filtered_buffer.astype(np.int16)
 
         #Convert to int16
-        return filtered_buffer.astype(np.int16)
+        return mixed_buffer.astype(np.int16)
+        
     def getDebugAudioBuffer(self):
 
         start = time.perf_counter()
