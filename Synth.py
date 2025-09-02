@@ -25,7 +25,7 @@ UNUSED = -1
 #   -         Filter (Filter)
 #
 class Synth(MIDI.MIDI_device):
-    def __init__(self, wave_type: str = consts.WAVE_TYPE, debug_mode: int = consts.DEBUG_MODE, amplitude: float = 1.0, filter_type: str = consts.FILTER_TYPE, cutoff: int = consts.CUTOFF):
+    def __init__(self, wave_type: str = consts.WAVE_TYPE, debug_mode: int = consts.DEBUG_MODE, amplitude: float = 1.0):
         
         start = time.perf_counter()
 
@@ -52,8 +52,9 @@ class Synth(MIDI.MIDI_device):
         for i in range(consts.MAX_VOICES):
             self._voices.append(UNUSED)
         
-        #Filter
-        self._filter = Filter.Filter(cutoff, filter_type)
+        #Filter, cascading two 2-pole filters
+        self._filter1 = Filter.Filter()
+        self._filter2 = Filter.Filter()
 
         if self._debug_mode == 3:
             filter_timer = time.perf_counter() - start
@@ -245,7 +246,7 @@ class Synth(MIDI.MIDI_device):
                 mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
                 
         #Apply filter
-        filtered_buffer = self._filter.use(mixed_buffer)
+        filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
 
         #Convert to int16
         return filtered_buffer.astype(np.int16)

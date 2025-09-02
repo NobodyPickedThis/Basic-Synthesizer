@@ -3,10 +3,10 @@ import numpy as np
 from lib import consts
 
 class Filter():
-    def __init__(self, cutoff: int, type: str):
+    def __init__(self):
         # Set filter type
         self._type = ""
-        match type:
+        match consts.FILTER_TYPE:
             case consts.HI_CUT:
                 self._type = consts.HI_CUT
             case consts.LOW_CUT:
@@ -15,10 +15,10 @@ class Filter():
                 raise Exception(ValueError)
         
         # Constrain cutoff
-        self._cutoff = cutoff
-        if cutoff > consts.MAX_FREQ:
+        self._cutoff = consts.CUTOFF
+        if self._cutoff > consts.MAX_FREQ:
             self._cutoff = consts.MAX_FREQ
-        if cutoff < consts.MIN_FREQ:
+        if self._cutoff < consts.MIN_FREQ:
             self._cutoff = consts.MIN_FREQ
 
         # State variables
