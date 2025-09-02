@@ -26,7 +26,8 @@ HI_CUT = "hi_cut"
 
 # Frequency ranges
 MAX_FREQ = 20000
-MIN_FREQ = 0
+MIN_FREQ = 20
+MAX_MIDI = 127
 
 NUM_GRAPHS = 2
 

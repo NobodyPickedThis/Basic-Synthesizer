@@ -19,3 +19,5 @@
 =====ISSUES=====
 
  1) Tone is still colored, most notable when using Sine.
+
+ 2) Cutoff Modulation is choppy. Could probably use interpolation?
