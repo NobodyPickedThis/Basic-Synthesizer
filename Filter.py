@@ -40,7 +40,8 @@ class Filter():
         if self._cutoff < consts.MIN_FREQ:
             self._cutoff = consts.MIN_FREQ
         self.calculateCoefficients()
-
+    
+    # Determines the behaviour of the filter
     def calculateCoefficients(self):
         # Normalize cutoff freqency, get Q 
         omega = 2.0 * math.pi * self._cutoff / consts.BITRATE

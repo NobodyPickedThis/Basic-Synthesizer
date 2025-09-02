@@ -39,19 +39,18 @@ class output:
         #Link to the audio created in the synth
         self._buffer_provider = buffer_provider
 
-        # Find WASAPI API
-        api = None
+        # Find Specified API (or just use 0 if nothing was specified)
+        api = None if consts.AUDIO_API != '' else 0
         for i in range(self._p.get_host_api_count()):
             api_info = self._p.get_host_api_info_by_index(i)
             if consts.AUDIO_API in api_info['name']:
                 api = i
+                if self._debug_mode == 1 or self._debug_mode == 2:
+                    print(f"Found {api_info.get('name')} API at index: {api}")
                 break
-        
-        if self._debug_mode > 0:
-            print(f"Found {consts.AUDIO_API} API at index: {api}")
-        
-        # Find your interface/output device
-        output_device = None
+         
+        # Find your interface/output device (or just use 0 if nothing was specified)
+        output_device = None if consts.INTERFACE_NAME != '' else 0
         if api is not None:
             for i in range(self._p.get_device_count()):
                 device_info = self._p.get_device_info_by_index(i)
@@ -59,15 +58,11 @@ class output:
                     device_info['maxOutputChannels'] > 0 and
                     consts.INTERFACE_NAME in device_info['name'].lower()):
                     output_device = i
-                    if self._debug_mode > 1:
-                        print(f"Selected {consts.INTERFACE_NAME} device index: {output_device}")
+                    if self._debug_mode == 1 or self._debug_mode == 2:
+                        print(f"Selected {device_info.get('name')} at device index: {output_device}")
                     if self._debug_mode == 2:
-                        print(f"Device details: {device_info}")
+                        print(f"\nDevice details: {device_info}\n")
                     break
-        
-        # Try opening with explicit parameters for debugging
-        if self._debug_mode > 0:
-            print(f"Attempting to open stream with device {output_device}")
 
         # Define the callback
         def stream_callback(in_data, frame_count, time_info, status):

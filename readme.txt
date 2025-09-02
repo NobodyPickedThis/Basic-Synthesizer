@@ -3,7 +3,7 @@
 
  2) Install dependencies using pip (numpy, matplotlib, mido, pyaudio)
 
- 3) Configure consts.py to recognize your hardware
+ 3) Configure consts.py to recognize your hardware (although autodetection should hopefully handle outputs if set to '')
 
  4) Run Synth.py
 
@@ -21,8 +21,6 @@
 
 
 =====ISSUES=====
-
- 0) Reduce startup time
 
  1) Tone is still colored, most notable when using Sine.
 
