@@ -9,6 +9,7 @@ import osc
 import ADSR
 import Waveform_Visualizer
 import Filter
+import Parameter_Interface
 
 from lib import mtof
 from lib import consts
@@ -78,6 +79,9 @@ class Synth(MIDI.MIDI_device):
         #Visualizer class and output waveform list
         self._visualizer = Waveform_Visualizer.Plot()
 
+        #Parameter controller
+        self._Parameter_Interface = Parameter_Interface.Parameter_Interface()
+
         if self._debug_mode == 3:
             vis_timer = time.perf_counter() - start
 
@@ -113,7 +117,6 @@ class Synth(MIDI.MIDI_device):
             print("Synth MIDI Callback entered")
 
         #Update oscillator based on new frequency and trigger ADSR start
-        #FIXME when ADSR exists, this is a hack
         if message.type == 'note_on' and self._mtof[message.note]:
             #if self._debug_mode > 0:
             #    print(f"\nNote ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
@@ -126,7 +129,6 @@ class Synth(MIDI.MIDI_device):
                 self._output._isPlaying = True
 
         #Trigger ADSR release
-        #FIXME when ADSR exists, this is a hack
         elif message.type == 'note_off':
             #if self._debug_mode > 0:
             #    print(f"Note OFF --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
@@ -141,11 +143,13 @@ class Synth(MIDI.MIDI_device):
             if not active_voices:
                 self._output._isPlaying = False
 
-        #FIXME outside of scope for now, but maybe worth looking into later
-        #(map parameters to MIDI CC rather than a GUI...?)
+        # Update any parameters mapped to CC
         elif message.type == 'control_change':
+
             if self._debug_mode == 2:
                 print(f"Control Change: {message.control}, Value: {message.value}")
+
+            self._Parameter_Interface.handle_cc_message(message.control, message.value)
 
     #Voice management
     def addVoice(self, new_voice: int = 0):
@@ -247,13 +251,21 @@ class Synth(MIDI.MIDI_device):
                 
         #Apply filter
         if consts.FILTER_ON:
+
+            #Update cutoff and resonance if user has changed them
+            if self._Parameter_Interface._new_cutoff is not None:
+                new_cutoff = self._Parameter_Interface._new_cutoff
+                self._Parameter_Interface._new_cutoff = None
+                self._filter1.setCutoff(new_cutoff)
+                self._filter2.setCutoff(new_cutoff)
+
+            #Casecade filters
             filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
             #Convert to int16
             return filtered_buffer.astype(np.int16)
 
         #Convert to int16
         return mixed_buffer.astype(np.int16)
-        
     def getDebugAudioBuffer(self):
 
         start = time.perf_counter()
@@ -268,16 +280,28 @@ class Synth(MIDI.MIDI_device):
         for i in range(len(self._voices)):
             if self._voices[i] != UNUSED:
                 mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
-                
-        #Apply filter
-        filtered_buffer = self._filter.use(mixed_buffer)
 
+        #Apply filter
+        if consts.FILTER_ON:
+
+            #Update cutoff and resonance if user has changed them
+            if self._Parameter_Interface._new_cutoff is not None:
+                new_cutoff = self._Parameter_Interface._new_cutoff
+                self._Parameter_Interface._new_cutoff = None
+                self._filter1.setCutoff(new_cutoff)
+                self._filter2.setCutoff(new_cutoff)
+
+            #Casecade filters
+            filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
+            #Convert to int16
+            return filtered_buffer.astype(np.int16)
+        
         ms = (time.perf_counter() - start)*1000
         if ms > 2:
             print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
 
         #Convert to int16
-        return filtered_buffer.astype(np.int16)
+        return mixed_buffer.astype(np.int16)
     
     #Visualizes waveform and envelope
     def visualize(self) -> None:
