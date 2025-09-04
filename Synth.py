@@ -258,6 +258,11 @@ class Synth(MIDI.MIDI_device):
                 self._Parameter_Interface._new_cutoff = None
                 self._filter1.setCutoff(new_cutoff)
                 self._filter2.setCutoff(new_cutoff)
+            if self._Parameter_Interface._new_Q is not None:
+                new_Q = self._Parameter_Interface._new_Q
+                self._Parameter_Interface._new_Q = None
+                self._filter1.setQ(new_Q)
+                self._filter2.setQ(new_Q)
 
             #Casecade filters
             filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))

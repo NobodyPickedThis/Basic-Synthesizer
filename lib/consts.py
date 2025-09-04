@@ -31,7 +31,7 @@ MAX_MIDI = 127
 
 NUM_GRAPHS = 2
 
-DEBUG_MODE = 2              #0 --- No debug outputs
+DEBUG_MODE = 3              #0 --- No debug outputs
                             #1 --- Simple debug outputs
                             #2 --- Verbose debug outputs
                             #3 --- Efficiency debug outputs (Does not include many other debug outputs)
@@ -54,9 +54,12 @@ EXPONENTIAL_DECAY_COEFFICIENT = 3.000 # 0: linear release
 # Hz, 0 - 20000
 CUTOFF = 2000    
 Q = 0.707   # Default to 0.707
+MAX_Q = 3
+MIN_Q = 0.1
 FILTER_TYPE = HI_CUT  
-FILTER_ON = True       
+FILTER_ON = True     
 
 
 # MIDI CC Bindings
 CUTOFF_CC = 1
+Q_CC = 2

@@ -14,12 +14,17 @@ class Filter():
             case _:
                 raise Exception(ValueError)
         
-        # Constrain cutoff
+        # Constrain cutoff and Q
         self._cutoff = consts.CUTOFF
         if self._cutoff > consts.MAX_FREQ:
             self._cutoff = consts.MAX_FREQ
         if self._cutoff < consts.MIN_FREQ:
             self._cutoff = consts.MIN_FREQ
+        self._Q = consts.Q
+        if self._Q > consts.MAX_Q:
+            self._Q = consts.MAX_Q
+        if self._Q < consts.MIN_Q:
+            self._Q = consts.MIN_Q
 
         # State variables
         # Previous two inputs: x[n-1] and x[n-2]
@@ -40,6 +45,14 @@ class Filter():
         if self._cutoff < consts.MIN_FREQ:
             self._cutoff = consts.MIN_FREQ
         self.calculateCoefficients()
+
+    def setQ(self, newQ: int = consts.Q):
+        self._Q = newQ
+        if self._Q > consts.MAX_Q:
+            self._Q = consts.MAX_Q
+        if self._Q < consts.MIN_Q:
+            self._Q = consts.MIN_Q
+        self.calculateCoefficients()
     
     # Determines the behaviour of the filter
     def calculateCoefficients(self):
@@ -47,7 +60,7 @@ class Filter():
         omega = 2.0 * math.pi * self._cutoff / consts.BITRATE
         sin_omega = math.sin(omega)
         cos_omega = math.cos(omega)
-        alpha = sin_omega / (2 * consts.Q)
+        alpha = sin_omega / (2 * self._Q)
 
         # The application of our filter no longer depends on filter types,
         # which are expressed by the coefficients. So we determine 
