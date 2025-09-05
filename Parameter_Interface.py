@@ -36,9 +36,9 @@ class Parameter_Interface:
                 sigmoid_Q = self.sigmoid(cc_value, self._Q_offset, self._Q_exp)
                 sigmoid_normalizer = 1.0 / (self.sigmoid(consts.MAX_MIDI) + self.sigmoid(0))
                 scaled_Q = ((sigmoid_Q + abs(self.sigmoid(0))) * sigmoid_normalizer) * consts.MAX_Q
-                self._new_Q = int(scaled_Q)
+                self._new_Q = scaled_Q
 
                 if consts.DEBUG_MODE == 2:
-                    print(f"Updating cutoff with new frequency: {self._new_cutoff}")
+                    print(f"Updating resonance: {self._new_Q}")
 
     

@@ -25,13 +25,13 @@ LOW_CUT = "low_cut"
 HI_CUT = "hi_cut"
 
 # Frequency ranges
-MAX_FREQ = 20000
+MAX_FREQ = NYQUIST - 1
 MIN_FREQ = 20
 MAX_MIDI = 127
 
 NUM_GRAPHS = 2
 
-DEBUG_MODE = 3              #0 --- No debug outputs
+DEBUG_MODE = 0              #0 --- No debug outputs
                             #1 --- Simple debug outputs
                             #2 --- Verbose debug outputs
                             #3 --- Efficiency debug outputs (Does not include many other debug outputs)
