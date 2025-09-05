@@ -16,10 +16,10 @@ class Filter():
         
         # Constrain cutoff and Q
         self._cutoff = consts.CUTOFF
-        if self._cutoff > consts.MAX_FREQ:
-            self._cutoff = consts.MAX_FREQ
-        if self._cutoff < consts.MIN_FREQ:
-            self._cutoff = consts.MIN_FREQ
+        if self._cutoff > consts.MAX_FILTER_FREQ:
+            self._cutoff = consts.MAX_FILTER_FREQ
+        if self._cutoff < consts.MIN_FILTER_FREQ:
+            self._cutoff = consts.MIN_FILTER_FREQ
         self._Q = consts.Q
         if self._Q > consts.MAX_Q:
             self._Q = consts.MAX_Q
@@ -37,22 +37,36 @@ class Filter():
         # Complicated math stuff abstracted into this function
         self._alpha = 0.001
         self.calculateCoefficients()
+        self._new_coefficients = False
+
+        #Old coefficients used for interpolation
+        self._prev_b0, self._prev_b1, self._prev_b2, self._prev_a1, self._prev_a2 = self._b0, self._b1, self._b2, self._a1, self._a2
 
     def setCutoff(self, newCutoff: int = consts.CUTOFF):
+        #Update old coefficients
+        self._prev_b0, self._prev_b1, self._prev_b2, self._prev_a1, self._prev_a2 = self._b0, self._b1, self._b2, self._a1, self._a2
+
+        #Recalculate new ones
         self._cutoff = newCutoff
-        if self._cutoff > consts.MAX_FREQ:
-            self._cutoff = consts.MAX_FREQ
-        if self._cutoff < consts.MIN_FREQ:
-            self._cutoff = consts.MIN_FREQ
+        if self._cutoff > consts.MAX_FILTER_FREQ:
+            self._cutoff = consts.MAX_FILTER_FREQ
+        if self._cutoff < consts.MIN_FILTER_FREQ:
+            self._cutoff = consts.MIN_FILTER_FREQ
         self.calculateCoefficients()
+        self._new_coefficients = True
 
     def setQ(self, newQ: int = consts.Q):
+        #Update old coefficients
+        self._prev_b0, self._prev_b1, self._prev_b2, self._prev_a1, self._prev_a2 = self._b0, self._b1, self._b2, self._a1, self._a2
+
+        #Recalculate new ones
         self._Q = newQ
         if self._Q > consts.MAX_Q:
             self._Q = consts.MAX_Q
         if self._Q < consts.MIN_Q:
             self._Q = consts.MIN_Q
         self.calculateCoefficients()
+        self._new_coefficients = True
     
     # Determines the behaviour of the filter
     def calculateCoefficients(self):
@@ -97,26 +111,60 @@ class Filter():
         normalized_input = input_signal.astype(np.float32) / 32767.0
         output = np.zeros(consts.BUFFER_SIZE, np.float32)
 
-        for i in range(consts.BUFFER_SIZE):
-            current_input = normalized_input[i]
+        # If coefficients have changed, use interpolation
+        if self._new_coefficients:
+            for i in range(consts.BUFFER_SIZE):
 
-            # 2-pole biquad difference equation
-            current_output = (self._b0 * current_input + 
-                            self._b1 * self._x1 + 
-                            self._b2 * self._x2 - 
-                            self._a1 * self._y1 - 
-                            self._a2 * self._y2)
-        
-            # Clamp output to prevent runaway
-            current_output = max(-1.0, min(1.0, current_output))
-            output[i] = current_output
+                # Interpolate coefficients for cleaner parameter modulation
+                progress = i / consts.BUFFER_SIZE
+                b0 = self._prev_b0 + (self._b0 - self._prev_b0) * progress
+                b1 = self._prev_b1 + (self._b1 - self._prev_b1) * progress
+                b2 = self._prev_b2 + (self._b2 - self._prev_b2) * progress
+                a1 = self._prev_a1 + (self._a1 - self._prev_a1) * progress
+                a2 = self._prev_a2 + (self._a2 - self._prev_a2) * progress
+
+                current_input = normalized_input[i]
+
+                # 2-pole biquad difference equation
+                current_output = (b0 * current_input + 
+                                b1 * self._x1 + 
+                                b2 * self._x2 - 
+                                a1 * self._y1 - 
+                                a2 * self._y2)
             
-            # Shift state variables
-            self._x2 = self._x1
-            self._x1 = current_input
-            self._y2 = self._y1  
-            self._y1 = current_output
-    
+                # Clamp output to prevent runaway
+                current_output = max(-1.0, min(1.0, current_output))
+                output[i] = current_output
+                
+                # Shift state variables
+                self._x2 = self._x1
+                self._x1 = current_input
+                self._y2 = self._y1  
+                self._y1 = current_output
+
+            # Reset coefficient flag
+            self._new_coefficients = False
+        else:
+            for i in range(consts.BUFFER_SIZE):
+                current_input = normalized_input[i]
+
+                # 2-pole biquad difference equation
+                current_output = (self._b0 * current_input + 
+                                self._b1 * self._x1 + 
+                                self._b2 * self._x2 - 
+                                self._a1 * self._y1 - 
+                                self._a2 * self._y2)
+            
+                # Clamp output to prevent runaway
+                current_output = max(-1.0, min(1.0, current_output))
+                output[i] = current_output
+                
+                # Shift state variables
+                self._x2 = self._x1
+                self._x1 = current_input
+                self._y2 = self._y1  
+                self._y1 = current_output
+
         return (output * 32767.0).astype(np.int16)
 
         

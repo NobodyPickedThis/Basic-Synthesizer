@@ -87,16 +87,24 @@ class Synth(MIDI.MIDI_device):
 
         #Initialize output stream
         self._output = Output_Stream.output(self._debug_mode)
-        #Only use debug buffer provider if debug enabled
+        #Only use debug buffer providers if debug enabled
         if self._debug_mode == 3:
-            self._output.play(self.getDebugAudioBuffer)
-        #Only use filter buffers as appropriate
+            if consts.FILTER_ON == True:
+                match consts.POLES:
+                    case 2:
+                        self._output.play(self.getDebug2PoleFilterAudioBuffer)
+                    case 4:
+                        self._output.play(self.getDebug4PoleFilterAudioBuffer)
+            else:
+                self._output.play(self.getDebugAudioBuffer)
+        #Only use filter buffer providers as appropriate
         elif consts.FILTER_ON == True:
             match consts.POLES:
                 case 2:
                     self._output.play(self.get2PoleFilterAudioBuffer)
                 case 4:
                     self._output.play(self.get4PoleFilterAudioBuffer)
+        #Default buffer provider
         else:
             self._output.play(self.getAudioBuffer)
 
@@ -298,7 +306,6 @@ class Synth(MIDI.MIDI_device):
             if self._voices[i] != UNUSED:
                 mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
                 
-        #Apply filter
         #Update cutoff and resonance if user has changed them
         if self._Parameter_Interface._new_cutoff is not None:
             new_cutoff = self._Parameter_Interface._new_cutoff
@@ -330,27 +337,82 @@ class Synth(MIDI.MIDI_device):
             if self._voices[i] != UNUSED:
                 mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
 
-        #Apply filter
-        if consts.FILTER_ON:
-
-            #Update cutoff and resonance if user has changed them
-            if self._Parameter_Interface._new_cutoff is not None:
-                new_cutoff = self._Parameter_Interface._new_cutoff
-                self._Parameter_Interface._new_cutoff = None
-                self._filter1.setCutoff(new_cutoff)
-                self._filter2.setCutoff(new_cutoff)
-
-            #Casecade filters
-            filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
-            #Convert to int16
-            return filtered_buffer.astype(np.int16)
-        
         ms = (time.perf_counter() - start)*1000
-        if ms > 2:
+        if ms > 1.5:
             print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
 
         #Convert to int16
         return mixed_buffer.astype(np.int16)
+    def getDebug2PoleFilterAudioBuffer(self):
+
+        start = time.perf_counter()
+            
+        #Ensure finished voices are set as such
+        self.pruneVoices()
+
+        #Start with silence
+        mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.float64)
+    
+        #Mix all active voices
+        for i in range(len(self._voices)):
+            if self._voices[i] != UNUSED:
+                mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
+
+        #Update cutoff and resonance if user has changed them
+        if self._Parameter_Interface._new_cutoff is not None:
+            new_cutoff = self._Parameter_Interface._new_cutoff
+            self._Parameter_Interface._new_cutoff = None
+            self._filter1.setCutoff(new_cutoff)
+        if self._Parameter_Interface._new_Q is not None:
+            new_Q = self._Parameter_Interface._new_Q
+            self._Parameter_Interface._new_Q = None
+            self._filter1.setQ(new_Q)
+
+        #Only use a single filter
+        filtered_buffer = self._filter1.use(mixed_buffer)
+        
+        ms = (time.perf_counter() - start)*1000
+        if ms > 1.5:
+            print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
+
+        #Convert to int16
+        return filtered_buffer.astype(np.int16)
+    def getDebug4PoleFilterAudioBuffer(self):
+
+        start = time.perf_counter()
+            
+        #Ensure finished voices are set as such
+        self.pruneVoices()
+
+        #Start with silence
+        mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.float64)
+    
+        #Mix all active voices
+        for i in range(len(self._voices)):
+            if self._voices[i] != UNUSED:
+                mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
+
+        #Update cutoff and resonance if user has changed them
+        if self._Parameter_Interface._new_cutoff is not None:
+            new_cutoff = self._Parameter_Interface._new_cutoff
+            self._Parameter_Interface._new_cutoff = None
+            self._filter1.setCutoff(new_cutoff)
+            self._filter2.setCutoff(new_cutoff)
+        if self._Parameter_Interface._new_Q is not None:
+            new_Q = self._Parameter_Interface._new_Q
+            self._Parameter_Interface._new_Q = None
+            self._filter1.setQ(new_Q)
+            self._filter2.setQ(new_Q)
+
+        #Casecade filters
+        filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
+        
+        ms = (time.perf_counter() - start)*1000
+        if ms > 1.5:
+            print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
+
+        #Convert to int16
+        return filtered_buffer.astype(np.int16)
     
     #Visualizes waveform and envelope
     def visualize(self) -> None:

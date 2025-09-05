@@ -31,13 +31,11 @@ MAX_MIDI = 127
 
 NUM_GRAPHS = 2
 
-DEBUG_MODE = 0              #0 --- No debug outputs
+DEBUG_MODE = 2              #0 --- No debug outputs
                             #1 --- Simple debug outputs
                             #2 --- Verbose debug outputs
                             #3 --- Efficiency debug outputs (Does not include many other debug outputs)
 
-
-# ========== TUNABLE PARAMETERS ==========
 
 # Supports "Sine" "Saw" or "Square"
 WAVE_TYPE = "Saw"           
@@ -51,16 +49,19 @@ EXPONENTIAL_DECAY_COEFFICIENT = 3.000 # 0: linear release
                                         # 1: Standard exponential release
                                         # >1: More dramatic exponential release
 
-# Hz, 0 - 20000
-CUTOFF = 2000    
+# Filter parameters
+MIN_FILTER_FREQ = 40
+MAX_FILTER_FREQ = 20000
+CUTOFF = MAX_FILTER_FREQ  
 Q = 0.707   # Default to 0.707
-MAX_Q = 3
-MIN_Q = 0.1
-FILTER_TYPE = HI_CUT  
+MAX_Q = 2
+MIN_Q = 0.5
+FILTER_TYPE = HI_CUT  # HI_CUT or LOW_CUT
 FILTER_ON = True     
-POLES = 4
+POLES = 4   # 2 or 4
 
 
 # MIDI CC Bindings
 CUTOFF_CC = 1
 Q_CC = 2
+WAVE_CC = 3
