@@ -25,7 +25,7 @@ LOW_CUT = "low_cut"
 HI_CUT = "hi_cut"
 
 # Frequency ranges
-MAX_FREQ = NYQUIST - 1
+MAX_FREQ = 20000
 MIN_FREQ = 20
 MAX_MIDI = 127
 
@@ -58,6 +58,7 @@ MAX_Q = 3
 MIN_Q = 0.1
 FILTER_TYPE = HI_CUT  
 FILTER_ON = True     
+POLES = 4
 
 
 # MIDI CC Bindings

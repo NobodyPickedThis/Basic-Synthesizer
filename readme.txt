@@ -20,4 +20,4 @@
 
  1) Tone is still colored, most notable when using Sine.
 
- 2) Cutoff Modulation is choppy. Could probably use interpolation?
+ 2) Cutoff Modulation is choppy. Could probably use interpolation? Or maybe needs to be updated more often than every buffer scan...?
