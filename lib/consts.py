@@ -31,7 +31,7 @@ MAX_MIDI = 127
 
 NUM_GRAPHS = 2
 
-DEBUG_MODE = 2              #0 --- No debug outputs
+DEBUG_MODE = 3             #0 --- No debug outputs
                             #1 --- Simple debug outputs
                             #2 --- Verbose debug outputs
                             #3 --- Efficiency debug outputs (Does not include many other debug outputs)
@@ -40,12 +40,21 @@ DEBUG_MODE = 2              #0 --- No debug outputs
 # Supports "Sine" "Saw" or "Square"
 WAVE_TYPE = "Saw"           
 
-ATTACK =  0.005                         # in s
-DECAY =   0.500                         # in s
+ATTACK  = 0.005                         # in s
+DECAY   = 0.500                         # in s
 SUSTAIN = 1.000                         # Amplitude coefficient from 0 to 1
 RELEASE = 0.100                         # in s
 
-EXPONENTIAL_DECAY_COEFFICIENT = 3.000 # 0: linear release
+MAX_ATTACK  = 1.500
+MIN_ATTACK  = 0.005
+MAX_DECAY   = 1.500
+MIN_DECAY   = 0.005
+MAX_SUSTAIN = 1.000
+MIN_SUSTAIN = 0.000
+MAX_RELEASE = 3.000
+MIN_RELEASE = 0.005
+
+EXPONENTIAL_DECAY_COEFFICIENT = 3.000   # 0: linear release
                                         # 1: Standard exponential release
                                         # >1: More dramatic exponential release
 
@@ -57,11 +66,18 @@ Q = 0.707   # Default to 0.707
 MAX_Q = 2
 MIN_Q = 0.5
 FILTER_TYPE = HI_CUT  # HI_CUT or LOW_CUT
-FILTER_ON = True     
+FILTER_ON = False     
 POLES = 4   # 2 or 4
+
+# Delay parameters
+DELAY = 0.300                           # in s
 
 
 # MIDI CC Bindings
-CUTOFF_CC = 1
-Q_CC = 2
-WAVE_CC = 3
+ATTACK_CC = 1
+DECAY_CC = 2
+SUSTAIN_CC = 3
+RELEASE_CC = 4
+CUTOFF_CC = 5
+Q_CC = 6
+WAVE_CC = 7

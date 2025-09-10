@@ -45,8 +45,8 @@ class ADSR():
         self._state = consts.OFF
         self._position = 0
 
-        # Flag for dynamically updating parameters during runtime
-        self._old_params = False
+        # For updating during runtime
+        self._needs_regeneration = False
 
         self._debug_mode = debug_mode
 
@@ -117,7 +117,9 @@ class ADSR():
 
                 for i in range(consts.BUFFER_SIZE):
                     pos = self._position + i
-                    if pos < self._release:
+                    
+                    # Bounds checking for runtime updates
+                    if pos < self._release and pos < len(self._R_values):
                         return_data[i] = pre_env_data[i] * scale_factor * self._R_values[pos]    # This should be sustain if note was held long enough before
                                                                                                  # release, if not then this is the value it was at prior to release
                     else:
@@ -163,18 +165,23 @@ class ADSR():
 
     # Reset envelope to initial state (for after it has been "used up")
     def reset(self):
-        #if self._debug_mode == 2:
-        #    print("Envelope state before reset: ", self._state)
-        if self._old_params:
+        if self._needs_regeneration == True:
+            #Recalculate array lengths
+            self._ADS_len = self._attack + self._decay
+            if self._ADS_len < consts.BUFFER_SIZE:
+                self._ADS_len += consts.BUFFER_SIZE - (self._ADS_len % consts.BUFFER_SIZE)
+            self._R_len = self._release
+            if self._R_len < consts.BUFFER_SIZE:
+                self._R_len += consts.BUFFER_SIZE - (self._R_len % consts.BUFFER_SIZE)
             self._ADS_values = np.zeros(self._ADS_len, dtype=float)
             self._R_values = np.zeros(self._R_len, dtype=float) 
             self.generateADS()
             self.generateR()
+            self._position = 0
+            self._needs_regeneration = False
         self._state = consts.OFF
         self._position = 0
         self._value = 0.0
-        #if self._debug_mode == 2:
-        #    print("Envelope state after reset: ", self._state)
 
     # Visualize envelope
     def drawEnvelope(self, plot, pos: int = 1) -> None:
