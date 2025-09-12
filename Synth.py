@@ -62,7 +62,6 @@ class Synth(MIDI.MIDI_device):
 
         #Envelope generator
         self._envelopes = []
-        self._envelopes_to_update = [False] * consts.MAX_VOICES
         envelope = ADSR.ADSR(self._debug_mode)
         for e in range(consts.MAX_VOICES):
             self._envelopes.append(copy.deepcopy(envelope))
@@ -165,6 +164,22 @@ class Synth(MIDI.MIDI_device):
             if self._debug_mode == 2:
                 print(f"Control Change: {message.control}, Value: {message.value}")
 
+            # ADSR parameters handled using ADSR bank class
+            if message.control == consts.ATTACK_CC:
+                for e in self._envelopes:
+                    e.updateParameters(attack=message.value)
+                return
+            if message.control == consts.DECAY_CC:
+                for e in self._envelopes:
+                    e.updateParameters(decay=message.value)
+                return
+            if message.control == consts.SUSTAIN_CC:
+                for e in self._envelopes:
+                    e.updateParameters(sustain=message.value)
+            if message.control == consts.RELEASE_CC:
+                for e in self._envelopes:
+                    e.updateParameters(release=message.value)
+
             self._Parameter_Interface.handle_cc_message(message.control, message.value)
 
     #Voice management
@@ -181,8 +196,6 @@ class Synth(MIDI.MIDI_device):
         # First check for duplicate voices:
         for i in range(consts.MAX_VOICES):
             if self._voices[i] == new_voice:
-                if self._envelopes_to_update[i]:
-                    self.updateEnvelope(i)
                 self._envelopes[i].reset()
                 self._envelopes[i].start()
                 if self._debug_mode == 2:
@@ -192,7 +205,6 @@ class Synth(MIDI.MIDI_device):
         # Next find UNUSED voices
         for i in range(consts.MAX_VOICES):
             if self._voices[i] == UNUSED:
-                self.updateEnvelope(i)
                 self._envelopes[i].start()
                 self._voices[i] = new_voice
                 return
@@ -204,8 +216,6 @@ class Synth(MIDI.MIDI_device):
                 oldest = i
         if self._envelopes[oldest].isOff():
             self._voices[oldest] = new_voice
-            if self._envelopes_to_update[oldest]:
-                self.updateEnvelope(oldest)
             self._envelopes[oldest].reset()
             self._envelopes[oldest].start()
             if self._debug_mode == 1 or self._debug_mode == 2:
@@ -218,8 +228,6 @@ class Synth(MIDI.MIDI_device):
             if self._envelopes[i]._value < self._envelopes[quietest]._value:
                 quietest = i
         self._voices[quietest] = new_voice
-        if self._envelopes_to_update[quietest]:
-            self.updateEnvelope(quietest)
         self._envelopes[quietest].reset()
         self._envelopes[quietest].start()
         if self._debug_mode == 0 or self._debug_mode == 2:
@@ -257,27 +265,12 @@ class Synth(MIDI.MIDI_device):
                 self._voices[i] = UNUSED
                 #if self._debug_mode == 2:
                 #    print(f"Removing finished voice at index {i}")
-    #Update envelope when a change is detected and safe to do so
-    def updateEnvelope(self, i):
-        self._envelopes[i]._attack = self._Parameter_Interface._attack
-        self._envelopes[i]._decay = self._Parameter_Interface._decay
-        self._envelopes[i]._sustain = self._Parameter_Interface._sustain
-        self._envelopes[i]._release = self._Parameter_Interface._release
-        self._envelopes[i]._needs_regeneration = True
-        self._envelopes_to_update[i] = False
-        
-
+   
     #Consolidate audio from wavetable and voice list to a buffer for output
     def getAudioBuffer(self):
             
         #Ensure finished voices are set as such
         self.pruneVoices()
-
-        #Check for envelope updates
-        if self._Parameter_Interface._update_ADSR:
-            for i in range(consts.MAX_VOICES):
-                self._envelopes_to_update[i] = True
-            self._Parameter_Interface._update_ADSR = False
 
         #Start with silence
         mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.float64)
@@ -293,11 +286,6 @@ class Synth(MIDI.MIDI_device):
             
         #Ensure finished voices are set as such
         self.pruneVoices()
-
-        #Check for envelope updates
-        if self._Parameter_Interface._update_ADSR:
-            self._envelopes_to_update = [True] * consts.MAX_VOICES
-            self._Parameter_Interface._update_ADSR = False
 
         #Start with silence
         mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.float64)
@@ -325,12 +313,6 @@ class Synth(MIDI.MIDI_device):
             
         #Ensure finished voices are set as such
         self.pruneVoices()
-
-        #Check for envelope updates
-        if self._Parameter_Interface._update_ADSR:
-            for i in range(consts.MAX_VOICES):
-                self._envelopes_to_update[i] = True
-            self._Parameter_Interface._update_ADSR = False
 
         #Start with silence
         mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.float64)
@@ -363,12 +345,6 @@ class Synth(MIDI.MIDI_device):
         #Ensure finished voices are set as such
         self.pruneVoices()
 
-        #Check for envelope updates
-        if self._Parameter_Interface._update_ADSR:
-            for i in range(consts.MAX_VOICES):
-                self._envelopes_to_update[i] = True
-            self._Parameter_Interface._update_ADSR = False
-
         #Start with silence
         mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.float64)
     
@@ -389,12 +365,6 @@ class Synth(MIDI.MIDI_device):
             
         #Ensure finished voices are set as such
         self.pruneVoices()
-
-        #Check for envelope updates
-        if self._Parameter_Interface._update_ADSR:
-            for i in range(consts.MAX_VOICES):
-                self._envelopes_to_update[i] = True
-            self._Parameter_Interface._update_ADSR = False
 
         #Start with silence
         mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.float64)
@@ -429,12 +399,6 @@ class Synth(MIDI.MIDI_device):
             
         #Ensure finished voices are set as such
         self.pruneVoices()
-
-        #Check for envelope updates
-        if self._Parameter_Interface._update_ADSR:
-            for i in range(consts.MAX_VOICES):
-                self._envelopes_to_update[i] = True
-            self._Parameter_Interface._update_ADSR = False
 
         #Start with silence
         mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.float64)

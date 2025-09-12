@@ -17,8 +17,10 @@ NOTE_OFF = 0
 
 # Envelope state tracking
 OFF = 0
-ADS = 1
-R = 2
+A = 1
+D = 2
+S = 3
+R = 4
 
 # Filter type values
 LOW_CUT = "low_cut"
@@ -31,7 +33,7 @@ MAX_MIDI = 127
 
 NUM_GRAPHS = 2
 
-DEBUG_MODE = 3             #0 --- No debug outputs
+DEBUG_MODE = 3              #0 --- No debug outputs
                             #1 --- Simple debug outputs
                             #2 --- Verbose debug outputs
                             #3 --- Efficiency debug outputs (Does not include many other debug outputs)
@@ -41,9 +43,9 @@ DEBUG_MODE = 3             #0 --- No debug outputs
 WAVE_TYPE = "Saw"           
 
 ATTACK  = 0.005                         # in s
-DECAY   = 0.500                         # in s
-SUSTAIN = 1.000                         # Amplitude coefficient from 0 to 1
-RELEASE = 0.100                         # in s
+DECAY   = 0.800                         # in s
+SUSTAIN = 0.500                         # Amplitude coefficient from 0 to 1
+RELEASE = 0.800                         # in s
 
 MAX_ATTACK  = 1.500
 MIN_ATTACK  = 0.005
@@ -66,7 +68,7 @@ Q = 0.707   # Default to 0.707
 MAX_Q = 2
 MIN_Q = 0.5
 FILTER_TYPE = HI_CUT  # HI_CUT or LOW_CUT
-FILTER_ON = False     
+FILTER_ON = True    
 POLES = 4   # 2 or 4
 
 # Delay parameters

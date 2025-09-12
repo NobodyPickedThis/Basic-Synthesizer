@@ -10,84 +10,94 @@ from lib import consts
 # See https://www.desmos.com/calculator/nrn6oabn6h for preliminary math
 
 # Envelope generator object
-
 class ADSR():
 
-    def __init__(self, debug_mode: int = 0, attack: float = consts.ATTACK, decay: float = consts.DECAY, sustain: float = consts.SUSTAIN, release: float = consts.RELEASE):    # Attack, Decay, Release in s, Sustain 0.0 - 1.0
+    def __init__(self, debug_mode: int = consts.DEBUG_MODE):    # Attack, Decay, Release in s, Sustain 0.0 - 1.0
 
-        # Parameter values
-        self._attack = int(float(attack) * consts.BITRATE)
-        self._decay = int(float(decay) * consts.BITRATE)
-        self._sustain = sustain
-        self._release = int(float(release) * consts.BITRATE )
+        # Parameter values table
+        self._attack = np.zeros(consts.MAX_MIDI + 1, dtype=np.float32)
+        self._decay = np.zeros(consts.MAX_MIDI + 1, dtype=np.float32)
+        self._sustain = np.zeros(consts.MAX_MIDI + 1, dtype=np.float32)
+        self._release = np.zeros(consts.MAX_MIDI + 1, dtype=np.float32)
+        for i in range(consts.MAX_MIDI + 1):
+            self._attack[i] = (consts.MIN_ATTACK + (i / consts.MAX_MIDI) * (consts.MAX_ATTACK - consts.MIN_ATTACK)) * consts.BITRATE
+            self._decay[i] = (consts.MIN_DECAY + (i / consts.MAX_MIDI) * (consts.MAX_DECAY - consts.MIN_DECAY)) * consts.BITRATE
+            self._sustain[i] = consts.MIN_SUSTAIN + (i / consts.MAX_MIDI) * (consts.MAX_SUSTAIN - consts.MIN_SUSTAIN)
+            self._release[i] = (consts.MIN_RELEASE + (i / consts.MAX_MIDI) * (consts.MAX_RELEASE - consts.MIN_RELEASE)) * consts.BITRATE
 
-        # Used to fade between values when envelope changes to release at unexpected time
-        self._value = 0.0
-
-        self._exp_release_coef = consts.EXPONENTIAL_DECAY_COEFFICIENT
+        # Initial envelope values
+        self._A_param = 0
+        self._D_param = 127
+        self._S_param = 0
+        self._R_param = 127
 
         # Array initializations, ensure enough samples to prevent non-flat sustain and post-release buffers
-        self._ADS_len = self._attack + self._decay
-        if self._ADS_len < consts.BUFFER_SIZE:
-            self._ADS_len += consts.BUFFER_SIZE % self._ADS_len
-        self._ADS_values = np.zeros(self._ADS_len, dtype=float)        
-        self._R_len = self._release
-        if self._R_len < consts.BUFFER_SIZE:
-            self._R_len += consts.BUFFER_SIZE % self._R_len
-        self._R_values = np.zeros(self._R_len, dtype=float)                  
+        self._array_size = consts.BITRATE // 10             
 
         # Array populations
-        self.generateADS()
+        self._A_values = np.zeros(self._array_size, dtype=np.float32)
+        self._D_values = np.zeros(self._array_size, dtype=np.float32)
+        self._R_values = np.zeros(self._array_size, dtype=np.float32)
+        self.generateA()
+        self.generateD()
         self.generateR()
-        self._empty_buffer = np.zeros(consts.BUFFER_SIZE, float)
+        self._empty_buffer = np.zeros(consts.BUFFER_SIZE, dtype=np.float32)
 
-        # Track which partition of envelope to use
+        # State tracking
         self._state = consts.OFF
-        self._position = 0
-
-        # For updating during runtime
-        self._needs_regeneration = False
+        self._position = 0.0
+        self._value = 0.0
 
         self._debug_mode = debug_mode
 
-    # Populate ADS array
-    def generateADS(self):
-        for i in range(self._ADS_values.size):
-
-            # Attack segment
-            if i < self._attack:
-                self._ADS_values[i] = float(i / self._attack) ** 2      #Quadratic attack
-
-            # Decay segment
-            elif i < (self._attack + self._decay):
-                #Decay progress
-                decay_position = (i - self._attack) / self._decay
-                # Linear value
-                linear_value = (1 - decay_position) + (self._sustain * decay_position)
-                # Apply exponential decay function based on coefficient
-                self._ADS_values[i] = max(linear_value * math.e ** (- self._exp_release_coef * decay_position), self._sustain)
-
-            # Sustain buffer
-            else:
-                self._ADS_values[i] = self._sustain
-
-    # Populate R values
+    # Populate Atack array
+    def generateA(self):
+        for i in range(self._array_size):
+            progress = i / (self._array_size - 1)
+            self._A_values[i] = progress ** 2      #Quadratic attack
+    # Populate Decay array
+    def generateD(self):
+        for i in range(self._array_size):
+            progress = i / (self._array_size - 1)
+            # Linear value
+            linear_value = (1.0 - progress) + (self._sustain[self._S_param] * progress)
+            # Apply exponential decay function based on coefficient
+            self._D_values[i] = max((linear_value * math.e ** (- consts.EXPONENTIAL_DECAY_COEFFICIENT * progress)), self._sustain[self._S_param])
+    # Populate Release array
     def generateR(self):
+        safety_sustain = max(self._sustain[self._S_param], 0.00000000001)
+        for i in range(self._array_size):
+            # Linear value
+            linear_value =  ((-safety_sustain / (self._array_size - 1)) * i + safety_sustain)
+            # Apply exponential decay function based on coefficient
+            self._R_values[i] = linear_value * math.e ** (- consts.EXPONENTIAL_DECAY_COEFFICIENT * (i / self._array_size))
+
+    def updateParameters(self, attack=None, decay=None, sustain=None, release=None):
+        if attack is not None:
+            self._A_param = attack
+            return
+        if decay is not None:
+            self._D_param = decay
+        if sustain is not None:
+            self._S_param = sustain
+            return
+        if release is not None:
+            self._R_param = release
+            return
+        return
+
+    def interpolateInArray(self, array, pos, len):
+        scaled_pos = pos * (self._array_size - 1) / len
+        if scaled_pos <= 0:
+            return array[0]
+        if scaled_pos >= self._array_size - 1:
+            return array[self._array_size - 1]
         
-        safety_sustain = max(self._sustain, 0.00000000001)
+        index = int(scaled_pos)
+        fraction = scaled_pos - index
 
-        for i in range(self._R_values.size):
-
-            # Release segment
-            if i < self._release:
-                # Linear value
-                self._R_values[i] = ((-safety_sustain / self._release) * i + safety_sustain)
-                # Apply exponential decay function based on coefficient
-                self._R_values[i] =  self._R_values[i] * math.e ** (- self._exp_release_coef * (i / self._release))
-
-            # Silence buffer
-            else:
-                self._R_values[i] = 0.0
+        # Linear interpolation
+        return (array[index] * (1.0 - fraction)) + (array[index + 1] * fraction)
 
     # Return envelope data, increment buffer chunk
     def applyEnvelope(self, pre_env_data):
@@ -95,40 +105,92 @@ class ADSR():
         return_data = self._empty_buffer
 
         match self._state:
-            case consts.ADS:
+            case consts.A:
+
+                attack_samples = self._attack[self._A_param]
+
                 for i in range(consts.BUFFER_SIZE):
 
                     pos = self._position + i
-                    if pos < self._ADS_len:
-                        env_val = self._ADS_values[pos]
+                    env_val = 0.0
+
+                    # Only evaluate if within number of samples expected given the current attack parameter
+                    if pos < attack_samples:
+                        env_val = self.interpolateInArray(self._A_values, pos, attack_samples)
+                    # Otherwise max amplitude has been reached
                     else:
-                        env_val = self._sustain
-                        
+                        env_val = 1.0
+
+                    return_data[i] = pre_env_data[i] * env_val
+
+                self._value = env_val    
+                self._position += consts.BUFFER_SIZE
+
+                if self._position >= attack_samples:
+                    self._state = consts.D
+                    self._position = 0.0
+
+                return return_data
+            
+            case consts.D:
+
+                decay_samples = self._decay[self._D_param]
+
+                for i in range(consts.BUFFER_SIZE):
+
+                    pos = self._position + i
+                    env_val = 0.0 
+
+                    # Only evaluate if within number of samples expected given the current decay parameter
+                    if pos < decay_samples:
+                        env_val = self._sustain[self._S_param] + (1.0 - self._sustain[self._S_param]) * self.interpolateInArray(self._D_values, pos, decay_samples) 
+                    # Otherwise sustain value has been reached
+                    else:
+                        env_val = self._sustain[self._S_param]
+                    
                     return_data[i] = pre_env_data[i] * env_val
                 
                 self._value = env_val    
                 self._position += consts.BUFFER_SIZE
+
+                if self._position >= decay_samples:
+                    self._state = consts.S
+                    self._position = 0.0
+
+                return return_data
+            
+            case consts.S:
+
+                for i in range(consts.BUFFER_SIZE):
+                    env_val = self._sustain[self._S_param] 
+                    return_data[i] = pre_env_data[i] * env_val
+
+                self._value = env_val    
+                self._position += consts.BUFFER_SIZE
+                
                 return return_data
 
             case consts.R:
 
-                #Prevent math issues when sustain is 0
-                scale_factor = self._value / max(self._sustain, 0.00000000001)
+                release_samples = self._release[self._R_param]
 
                 for i in range(consts.BUFFER_SIZE):
+
                     pos = self._position + i
-                    
+                    env_val = 0.0
+
                     # Bounds checking for runtime updates
-                    if pos < self._release and pos < len(self._R_values):
-                        return_data[i] = pre_env_data[i] * scale_factor * self._R_values[pos]    # This should be sustain if note was held long enough before
-                                                                                                 # release, if not then this is the value it was at prior to release
+                    if pos < release_samples:
+                        env_val = self._value * self.interpolateInArray(self._R_values, pos, release_samples)
+                        return_data[i] = pre_env_data[i] * env_val     
                     else:
                         return_data[i] = 0.0
 
+                self._value = env_val    
                 self._position += consts.BUFFER_SIZE
 
                 # Turn off envelope if complete
-                if self._position >= self._release:
+                if self._position >= release_samples:
                     self.reset()
                     return np.zeros(consts.BUFFER_SIZE, float)
 
@@ -141,49 +203,33 @@ class ADSR():
     def start(self):
         #if self._debug_mode == 2:
         #    print("Envelope state before start: ", self._state)
-        self._state = consts.ADS
+        self._state = consts.A
+        self._position = 0.0
         #if self._debug_mode == 2:
         #    print("Envelope state after start: ", self._state)
     # Change state from ADS to R, turn off if release is 0 immediately
     def release(self):
-        if self._state == consts.ADS:
-            #Capture current envelope value
-            if self._position < self._ADS_len:
-                self._value = self._ADS_values[self._position]
-            else:
-                self._value = self._sustain
-
+        if self._state > consts.OFF and self._state < consts.R:
             #Switch state, resetting position
             self._state = consts.R
-            self._position = 0
+            self._position = 0.0
 
     # Check state
     def isOn(self) -> bool:
-        return self._state == consts.ADS or self._state == consts.R
+        return self._state > consts.OFF and self._state <= consts.R
     def isOff(self) -> bool:
         return self._state == consts.OFF
 
     # Reset envelope to initial state (for after it has been "used up")
     def reset(self):
-        if self._needs_regeneration == True:
-            #Recalculate array lengths
-            self._ADS_len = self._attack + self._decay
-            if self._ADS_len < consts.BUFFER_SIZE:
-                self._ADS_len += consts.BUFFER_SIZE - (self._ADS_len % consts.BUFFER_SIZE)
-            self._R_len = self._release
-            if self._R_len < consts.BUFFER_SIZE:
-                self._R_len += consts.BUFFER_SIZE - (self._R_len % consts.BUFFER_SIZE)
-            self._ADS_values = np.zeros(self._ADS_len, dtype=float)
-            self._R_values = np.zeros(self._R_len, dtype=float) 
-            self.generateADS()
-            self.generateR()
-            self._position = 0
-            self._needs_regeneration = False
         self._state = consts.OFF
-        self._position = 0
+        self._position = 0.0
         self._value = 0.0
 
     # Visualize envelope
     def drawEnvelope(self, plot, pos: int = 1) -> None:
-        #Slightly modifying lists to reduce "flat" sections between decay and release and release and end
-        plot.drawWaveform(np.concatenate((self._ADS_values, self._R_values)), pos)
+        s = np.zeros(100)
+        for i in s:
+            s = self._sustain
+        w = np.concat((self._A_values, self._D_values, s, self._R_values))
+        plot.drawWaveform(w, pos)
