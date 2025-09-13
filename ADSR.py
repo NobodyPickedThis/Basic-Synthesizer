@@ -175,7 +175,6 @@ class ADSR():
                 release_samples = self._release[self._R_param]
 
                 scale_factor = max(self._sustain[self._S_param], self._value) * min(1, self._value / max(self._sustain[self._S_param], 0.00000000001))
-                #print(f"Scale factor: {scale_factor:.2f}")
 
                 for i in range(consts.BUFFER_SIZE):
 
@@ -185,7 +184,6 @@ class ADSR():
                     if pos < release_samples:
                         env_val = self.interpolateInArray(self._R_values, pos, release_samples) * scale_factor
                         return_data[i] = pre_env_data[i] * env_val
-                        #print(f"env_val: {env_val}, input: {pre_env_data[i]}, output: {return_data[i]}")
                     else:
                         return_data[i] = 0.0
 
@@ -193,7 +191,6 @@ class ADSR():
 
                 # Turn off envelope if complete
                 if self._position >= release_samples:
-                    print("Release complete")
                     self.reset()
                     return np.zeros(consts.BUFFER_SIZE, float)
 
@@ -204,15 +201,10 @@ class ADSR():
 
     # Turn note on
     def start(self):
-        #if self._debug_mode == 2:
-        #    print("Envelope state before start: ", self._state)
         self._state = consts.A
         self._position = 0.0
-        #if self._debug_mode == 2:
-        #    print("Envelope state after start: ", self._state)
     # Change state from ADS to R, turn off if release is 0 immediately
     def release(self):
-        print("Release called")
         if self._state > consts.OFF and self._state < consts.R:
             #Switch state, resetting position
             self._state = consts.R

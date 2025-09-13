@@ -43,7 +43,17 @@ class Synth(MIDI.MIDI_device):
 
         #Signal generation components
         self._amplitude = amplitude
-        self._osc = osc.osc(wave_type)   #FIXME add parametric constructor support from midi CC
+        self._wave_type = consts.WAVE_TYPE
+        self._sin= osc.osc("Sine")
+        self._saw = osc.osc("Saw")
+        self._sqr = osc.osc("Square")
+        match self._wave_type:
+            case "Sine":
+                self._osc = self._sin
+            case "Saw":
+                self._osc = self._saw
+            case "Square":
+                self._osc = self._sqr
 
         if self._debug_mode == 3:
             osc_gen_timer = time.perf_counter() - start
@@ -179,6 +189,21 @@ class Synth(MIDI.MIDI_device):
             if message.control == consts.RELEASE_CC:
                 for e in self._envelopes:
                     e.updateParameters(release=message.value)
+            if message.control == consts.WAVE_CC:
+                type = int(3 * message.value / consts.MAX_MIDI)
+                match type:
+                    case 0: # Sine
+                        if self._wave_type != "Sine":
+                            self._osc = self._sin
+                            self._wave_type = "Sine"
+                    case 1: # Saw
+                        if self._wave_type != "Saw":
+                            self._osc = self._saw
+                            self._wave_type = "Saw"
+                    case 2: # Square
+                        if self._wave_type != "Square":
+                            self._osc = self._sqr
+                            self._wave_type = "Square"
 
             self._Parameter_Interface.handle_cc_message(message.control, message.value)
 
@@ -230,7 +255,7 @@ class Synth(MIDI.MIDI_device):
         self._voices[quietest] = new_voice
         self._envelopes[quietest].reset()
         self._envelopes[quietest].start()
-        if self._debug_mode == 0 or self._debug_mode == 2:
+        if self._debug_mode == 1 or self._debug_mode == 2:
             print(f"Stole voice from index {quietest}")
         return
     def releaseVoice(self, rel_voice: int = 0):
