@@ -1,5 +1,6 @@
 import pyaudio
 from lib import consts
+import numpy
 import numpy as np
 
 #Handles stream open, write, and close functionality

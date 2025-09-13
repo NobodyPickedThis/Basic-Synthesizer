@@ -1,4 +1,5 @@
 from lib import consts
+import numpy
 import numpy as np
 
 # Allows communication between MIDI messages and their associated parameters.

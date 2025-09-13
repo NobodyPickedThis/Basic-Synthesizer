@@ -1,4 +1,5 @@
 import mido
+import mido.backends.rtmidi
 from lib import mtof
 from lib import consts
 

@@ -1,4 +1,5 @@
 import math
+import numpy
 import numpy as np
 from lib import consts
 
