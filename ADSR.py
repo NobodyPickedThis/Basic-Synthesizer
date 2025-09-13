@@ -20,16 +20,16 @@ class ADSR():
         self._sustain = np.zeros(consts.MAX_MIDI + 1, dtype=np.float32)
         self._release = np.zeros(consts.MAX_MIDI + 1, dtype=np.float32)
         for i in range(consts.MAX_MIDI + 1):
-            self._attack[i] = (consts.MIN_ATTACK + (i / consts.MAX_MIDI) * (consts.MAX_ATTACK - consts.MIN_ATTACK)) * consts.BITRATE
-            self._decay[i] = (consts.MIN_DECAY + (i / consts.MAX_MIDI) * (consts.MAX_DECAY - consts.MIN_DECAY)) * consts.BITRATE
+            self._attack[i] = int((consts.MIN_ATTACK + (i / consts.MAX_MIDI) * (consts.MAX_ATTACK - consts.MIN_ATTACK)) * consts.BITRATE)
+            self._decay[i] = int((consts.MIN_DECAY + (i / consts.MAX_MIDI) * (consts.MAX_DECAY - consts.MIN_DECAY)) * consts.BITRATE)
             self._sustain[i] = consts.MIN_SUSTAIN + (i / consts.MAX_MIDI) * (consts.MAX_SUSTAIN - consts.MIN_SUSTAIN)
-            self._release[i] = (consts.MIN_RELEASE + (i / consts.MAX_MIDI) * (consts.MAX_RELEASE - consts.MIN_RELEASE)) * consts.BITRATE
+            self._release[i] = int((consts.MIN_RELEASE + (i / consts.MAX_MIDI) * (consts.MAX_RELEASE - consts.MIN_RELEASE)) * consts.BITRATE)
 
         # Initial envelope values
         self._A_param = 0
-        self._D_param = 127
-        self._S_param = 0
-        self._R_param = 127
+        self._D_param = 32
+        self._S_param = 127
+        self._R_param = 32
 
         # Array initializations, ensure enough samples to prevent non-flat sustain and post-release buffers
         self._array_size = consts.BITRATE // 10             
@@ -60,17 +60,17 @@ class ADSR():
         for i in range(self._array_size):
             progress = i / (self._array_size - 1)
             # Linear value
-            linear_value = (1.0 - progress) + (self._sustain[self._S_param] * progress)
+            linear_value = (1.0 - self._sustain[self._S_param]) - ((1.0 - self._sustain[self._S_param])* progress)
             # Apply exponential decay function based on coefficient
-            self._D_values[i] = max((linear_value * math.e ** (- consts.EXPONENTIAL_DECAY_COEFFICIENT * progress)), self._sustain[self._S_param])
+            self._D_values[i] = self._sustain[self._S_param] + (linear_value * math.e ** (- consts.EXPONENTIAL_DECAY_COEFFICIENT * progress))
     # Populate Release array
     def generateR(self):
-        safety_sustain = max(self._sustain[self._S_param], 0.00000000001)
         for i in range(self._array_size):
+            progress = i / (self._array_size - 1)
             # Linear value
-            linear_value =  ((-safety_sustain / (self._array_size - 1)) * i + safety_sustain)
+            linear_value = 1 - progress
             # Apply exponential decay function based on coefficient
-            self._R_values[i] = linear_value * math.e ** (- consts.EXPONENTIAL_DECAY_COEFFICIENT * (i / self._array_size))
+            self._R_values[i] = linear_value * math.e ** (- consts.EXPONENTIAL_DECAY_COEFFICIENT * progress)
 
     def updateParameters(self, attack=None, decay=None, sustain=None, release=None):
         if attack is not None:
@@ -174,23 +174,26 @@ class ADSR():
 
                 release_samples = self._release[self._R_param]
 
+                scale_factor = max(self._sustain[self._S_param], self._value) * min(1, self._value / max(self._sustain[self._S_param], 0.00000000001))
+                #print(f"Scale factor: {scale_factor:.2f}")
+
                 for i in range(consts.BUFFER_SIZE):
 
                     pos = self._position + i
-                    env_val = 0.0
 
                     # Bounds checking for runtime updates
                     if pos < release_samples:
-                        env_val = self._value * self.interpolateInArray(self._R_values, pos, release_samples)
-                        return_data[i] = pre_env_data[i] * env_val     
+                        env_val = self.interpolateInArray(self._R_values, pos, release_samples) * scale_factor
+                        return_data[i] = pre_env_data[i] * env_val
+                        #print(f"env_val: {env_val}, input: {pre_env_data[i]}, output: {return_data[i]}")
                     else:
                         return_data[i] = 0.0
 
-                self._value = env_val    
                 self._position += consts.BUFFER_SIZE
 
                 # Turn off envelope if complete
                 if self._position >= release_samples:
+                    print("Release complete")
                     self.reset()
                     return np.zeros(consts.BUFFER_SIZE, float)
 
@@ -209,6 +212,7 @@ class ADSR():
         #    print("Envelope state after start: ", self._state)
     # Change state from ADS to R, turn off if release is 0 immediately
     def release(self):
+        print("Release called")
         if self._state > consts.OFF and self._state < consts.R:
             #Switch state, resetting position
             self._state = consts.R
@@ -228,8 +232,33 @@ class ADSR():
 
     # Visualize envelope
     def drawEnvelope(self, plot, pos: int = 1) -> None:
-        s = np.zeros(100)
-        for i in s:
-            s = self._sustain
-        w = np.concat((self._A_values, self._D_values, s, self._R_values))
-        plot.drawWaveform(w, pos)
+
+        a_len = int(self._attack[self._A_param])
+        attack_segment = np.zeros(a_len, dtype=np.float32)
+        for i in range(a_len):
+            progress = i / (a_len / self._array_size)
+            attack_segment[i] = self.interpolateInArray(self._A_values, progress, self._array_size)
+
+        d_len = int(self._decay[self._D_param])
+        decay_segment = np.zeros(d_len, dtype=np.float32)
+        for i in range(d_len):
+            progress = i / (d_len / self._array_size)
+            decay_segment[i] = self.interpolateInArray(self._D_values, progress, self._array_size)
+
+        s_len = self._array_size // 4
+        sustain_segment = np.zeros(s_len, dtype=np.float32)
+        for i in range(s_len):
+            sustain_segment[i] = self._sustain[self._S_param]
+
+        r_len = int(self._release[self._R_param])
+        release_segment = np.zeros(r_len, dtype=np.float32)
+        for i in range(r_len):
+            progress = i / (r_len / self._array_size)
+            release_segment[i] = self._sustain[self._S_param] * self.interpolateInArray(self._R_values, progress, self._array_size)
+
+
+
+
+
+
+        plot.drawWaveform(np.concat((attack_segment, decay_segment, sustain_segment, release_segment)), pos)

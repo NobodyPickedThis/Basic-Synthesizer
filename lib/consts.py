@@ -38,16 +38,15 @@ DEBUG_MODE = 3              #0 --- No debug outputs
                             #2 --- Verbose debug outputs
                             #3 --- Efficiency debug outputs (Does not include many other debug outputs)
 
+# Buffer efficiency threshold (ms)
+TOO_SLOW = 2.0
+
 
 # Supports "Sine" "Saw" or "Square"
 WAVE_TYPE = "Saw"           
 
-ATTACK  = 0.005                         # in s
-DECAY   = 0.800                         # in s
-SUSTAIN = 0.500                         # Amplitude coefficient from 0 to 1
-RELEASE = 0.800                         # in s
-
-MAX_ATTACK  = 1.500
+# Bounds for ADSR parameters
+MAX_ATTACK  = 1.000
 MIN_ATTACK  = 0.005
 MAX_DECAY   = 1.500
 MIN_DECAY   = 0.005
@@ -63,17 +62,11 @@ EXPONENTIAL_DECAY_COEFFICIENT = 3.000   # 0: linear release
 # Filter parameters
 MIN_FILTER_FREQ = 40
 MAX_FILTER_FREQ = 20000
-CUTOFF = MAX_FILTER_FREQ  
-Q = 0.707   # Default to 0.707
 MAX_Q = 2
 MIN_Q = 0.5
 FILTER_TYPE = HI_CUT  # HI_CUT or LOW_CUT
 FILTER_ON = True    
 POLES = 4   # 2 or 4
-
-# Delay parameters
-DELAY = 0.300                           # in s
-
 
 # MIDI CC Bindings
 ATTACK_CC = 1

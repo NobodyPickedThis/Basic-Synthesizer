@@ -354,7 +354,7 @@ class Synth(MIDI.MIDI_device):
                 mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
 
         ms = (time.perf_counter() - start)*1000
-        if ms > 1.5:
+        if ms > consts.TOO_SLOW:
             print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
 
         #Convert to int16
@@ -388,7 +388,7 @@ class Synth(MIDI.MIDI_device):
         filtered_buffer = self._filter1.use(mixed_buffer)
         
         ms = (time.perf_counter() - start)*1000
-        if ms > 1.5:
+        if ms >  consts.TOO_SLOW:
             print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
 
         #Convert to int16
@@ -424,13 +424,14 @@ class Synth(MIDI.MIDI_device):
         filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
         
         ms = (time.perf_counter() - start)*1000
-        if ms > 1.5:
+        if ms > consts.TOO_SLOW:
             print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
 
         #Convert to int16
         return filtered_buffer.astype(np.int16)
     
     #Visualizes waveform and envelope
+    #FIXME make it update in realtime with ADSR params!
     def visualize(self) -> None:
         self._osc.drawWaveform(self._visualizer, 0)
         self._envelopes[0].drawEnvelope(self._visualizer, 1)

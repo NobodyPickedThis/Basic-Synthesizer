@@ -15,16 +15,8 @@ class Filter():
                 raise Exception(ValueError)
         
         # Constrain cutoff and Q
-        self._cutoff = consts.CUTOFF
-        if self._cutoff > consts.MAX_FILTER_FREQ:
-            self._cutoff = consts.MAX_FILTER_FREQ
-        if self._cutoff < consts.MIN_FILTER_FREQ:
-            self._cutoff = consts.MIN_FILTER_FREQ
-        self._Q = consts.Q
-        if self._Q > consts.MAX_Q:
-            self._Q = consts.MAX_Q
-        if self._Q < consts.MIN_Q:
-            self._Q = consts.MIN_Q
+        self._cutoff = consts.MAX_FILTER_FREQ
+        self._Q = 0.707
 
         # State variables
         # Previous two inputs: x[n-1] and x[n-2]
@@ -42,7 +34,7 @@ class Filter():
         #Old coefficients used for interpolation
         self._prev_b0, self._prev_b1, self._prev_b2, self._prev_a1, self._prev_a2 = self._b0, self._b1, self._b2, self._a1, self._a2
 
-    def setCutoff(self, newCutoff: int = consts.CUTOFF):
+    def setCutoff(self, newCutoff: int = consts.MAX_FILTER_FREQ):
         #Update old coefficients
         self._prev_b0, self._prev_b1, self._prev_b2, self._prev_a1, self._prev_a2 = self._b0, self._b1, self._b2, self._a1, self._a2
 
@@ -55,7 +47,7 @@ class Filter():
         self.calculateCoefficients()
         self._new_coefficients = True
 
-    def setQ(self, newQ: int = consts.Q):
+    def setQ(self, newQ: int = consts.MAX_Q):
         #Update old coefficients
         self._prev_b0, self._prev_b1, self._prev_b2, self._prev_a1, self._prev_a2 = self._b0, self._b1, self._b2, self._a1, self._a2
 
