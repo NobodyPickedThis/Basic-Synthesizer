@@ -28,7 +28,7 @@ class ADSR():
         # Initial envelope values
         self._A_param = 0
         self._D_param = 32
-        self._S_param = 127
+        self._S_param = 0
         self._R_param = 32
 
         # Array initializations, ensure enough samples to prevent non-flat sustain and post-release buffers
@@ -62,7 +62,7 @@ class ADSR():
             # Linear value
             linear_value = (1.0 - self._sustain[self._S_param]) - ((1.0 - self._sustain[self._S_param])* progress)
             # Apply exponential decay function based on coefficient
-            self._D_values[i] = self._sustain[self._S_param] + (linear_value * math.e ** (- consts.EXPONENTIAL_DECAY_COEFFICIENT * progress))
+            self._D_values[i] = (linear_value * math.e ** (- consts.EXPONENTIAL_DECAY_COEFFICIENT * progress))
     # Populate Release array
     def generateR(self):
         for i in range(self._array_size):
@@ -143,7 +143,7 @@ class ADSR():
 
                     # Only evaluate if within number of samples expected given the current decay parameter
                     if pos < decay_samples:
-                        env_val = self._sustain[self._S_param] + (1.0 - self._sustain[self._S_param]) * self.interpolateInArray(self._D_values, pos, decay_samples) 
+                        env_val = self._sustain[self._S_param] + self.interpolateInArray(self._D_values, pos, decay_samples) 
                     # Otherwise sustain value has been reached
                     else:
                         env_val = self._sustain[self._S_param]
