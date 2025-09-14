@@ -1,4 +1,3 @@
-import numpy
 import numpy as np
 import time
 import mido
@@ -89,6 +88,7 @@ class Synth(MIDI.MIDI_device):
         
         #Visualizer class and output waveform list
         self._visualizer = Waveform_Visualizer.Plot()
+        self._needs_redraw = False
 
         #Parameter controller
         self._Parameter_Interface = Parameter_Interface.Parameter_Interface()
@@ -179,17 +179,23 @@ class Synth(MIDI.MIDI_device):
             if message.control == consts.ATTACK_CC:
                 for e in self._envelopes:
                     e.updateParameters(attack=message.value)
+                self._needs_redraw = True
                 return
             if message.control == consts.DECAY_CC:
                 for e in self._envelopes:
                     e.updateParameters(decay=message.value)
+                self._needs_redraw = True
                 return
             if message.control == consts.SUSTAIN_CC:
                 for e in self._envelopes:
                     e.updateParameters(sustain=message.value)
+                self._needs_redraw = True
+                return
             if message.control == consts.RELEASE_CC:
                 for e in self._envelopes:
                     e.updateParameters(release=message.value)
+                self._needs_redraw = True
+                return
             if message.control == consts.WAVE_CC:
                 type = int(3 * message.value / consts.MAX_MIDI)
                 match type:
@@ -205,8 +211,13 @@ class Synth(MIDI.MIDI_device):
                         if self._wave_type != "Square":
                             self._osc = self._sqr
                             self._wave_type = "Square"
-
-            self._Parameter_Interface.handle_cc_message(message.control, message.value)
+                self._needs_redraw = True
+                return
+            if message.control == consts.CUTOFF_CC or message.control == consts.Q_CC:
+                self._Parameter_Interface.handle_cc_message(message.control, message.value)
+                self._needs_redraw = True
+                return
+            return
 
     #Voice management
     def addVoice(self, new_voice: int = 0):
@@ -457,11 +468,13 @@ class Synth(MIDI.MIDI_device):
         return filtered_buffer.astype(np.int16)
     
     #Visualizes waveform and envelope
-    #FIXME make it update in realtime with ADSR params!
+    #FIXME make it update in realtime with params!
     def visualize(self) -> None:
         self._osc.drawWaveform(self._visualizer, 0)
         self._envelopes[0].drawEnvelope(self._visualizer, 1)
         self._visualizer.display()
+    def needsRedraw(self) -> bool:
+        return self._needs_redraw
 
 
 #Runs the synth
@@ -481,6 +494,9 @@ if __name__ == "__main__":
             #Hack to let me test MIDI objects
             while True:
                 time.sleep(1)
+                # FIXME doesn't work
+                if synth.needsRedraw():
+                    synth.visualize
         case False:
             #Spoof a few notes
             for i in range(consts.MAX_VOICES * 2):

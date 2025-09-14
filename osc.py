@@ -1,7 +1,6 @@
 import math
 from lib import consts
 from lib import mtof
-import numpy
 import numpy as np
 
 class osc():
