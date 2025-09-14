@@ -441,11 +441,16 @@ class Synth(MIDI.MIDI_device):
         mixed_buffer = np.zeros(consts.BUFFER_SIZE, np.float64)
     
         #Mix all active voices
+        voice_env_start = time.perf_counter()
         for i in range(len(self._voices)):
             if self._voices[i] != UNUSED:
                 mixed_buffer += self._envelopes[i].applyEnvelope(self._osc[self._voices[i]]).astype(np.float64) / consts.MAX_VOICES
+        voice_env_time = (time.perf_counter() - voice_env_start) * 1000
+        if voice_env_time > 1.0:
+            print(f"Voice mixing & envelope application time: {voice_env_time:.2f}ms")
 
         #Update cutoff and resonance if user has changed them
+        filter_param_start = time.perf_counter()
         if self._Parameter_Interface._new_cutoff is not None:
             new_cutoff = self._Parameter_Interface._new_cutoff
             self._Parameter_Interface._new_cutoff = None
@@ -456,9 +461,16 @@ class Synth(MIDI.MIDI_device):
             self._Parameter_Interface._new_Q = None
             self._filter1.setQ(new_Q)
             self._filter2.setQ(new_Q)
+        filter_param_time = (time.perf_counter() - filter_param_start) * 1000
+        if filter_param_time > 1.0:
+            print(f"Filter param processing: {filter_param_time:.2f}ms")
 
         #Casecade filters
+        filter_start = time.perf_counter()
         filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
+        filter_time = (time.perf_counter() - filter_start) * 1000
+        if filter_time > 1.0:
+            print(f"Filter processing: {filter_time:.2f}ms")
         
         ms = (time.perf_counter() - start)*1000
         if ms > consts.TOO_SLOW:
@@ -474,7 +486,10 @@ class Synth(MIDI.MIDI_device):
         self._envelopes[0].drawEnvelope(self._visualizer, 1)
         self._visualizer.display()
     def needsRedraw(self) -> bool:
+        if self._debug_mode > 0 and self._needs_redraw:
+            print("Plot needs redrawing")
         return self._needs_redraw
+
 
 
 #Runs the synth
@@ -494,9 +509,8 @@ if __name__ == "__main__":
             #Hack to let me test MIDI objects
             while True:
                 time.sleep(1)
-                # FIXME doesn't work
-                if synth.needsRedraw():
-                    synth.visualize
+                #if synth.needsRedraw():
+                #    synth.visualize()
         case False:
             #Spoof a few notes
             for i in range(consts.MAX_VOICES * 2):

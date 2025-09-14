@@ -1,7 +1,7 @@
 # ========== REFERENCE VALUES ==========
 BITRATE = 48000
 NYQUIST = BITRATE / 2
-BUFFER_SIZE = 512
+BUFFER_SIZE = 128
 
 # Name of desired device (or leave blank '' for auto detection) 
 DEVICE_NAME = 'MPKmini2'
