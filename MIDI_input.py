@@ -39,7 +39,6 @@ class MIDI_device:
         else:
             return False
 
-    #FIXME debug
     def printAllMIDIDevices(self):
         for device in mido.get_input_names():
             print(device)

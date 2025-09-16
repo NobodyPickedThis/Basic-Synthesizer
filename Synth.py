@@ -17,8 +17,6 @@ from lib import consts
 UNUSED = -1
 
 
-# FIXME commented out debug statements to check efficiency
-
 #"Hub" class, defines signal flow up until Output_Stream
 #   -IS A MIDI_device object
 #   -HAS A(N) oscillator (osc)
@@ -136,7 +134,7 @@ class Synth(MIDI.MIDI_device):
 
         if self._debug_mode > 0 and self._debug_mode < 3:
             self.printAllMIDIDevices()
-            print("Connected to MIDI input:", synth._device_is_connected)
+            print("Connected to MIDI input:", self._device_is_connected)
 
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
@@ -147,25 +145,16 @@ class Synth(MIDI.MIDI_device):
 
         #Update oscillator based on new frequency and trigger ADSR start
         if message.type == 'note_on' and self._mtof[message.note]:
-            #if self._debug_mode > 0:
-            #    print(f"\nNote ON --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
 
             self.addVoice(message.note)
-            #if self._debug_mode > 0:
-            #    print("Active voices:,", [x for x in self._voices if x != UNUSED])
 
             if not self._output._isPlaying:
                 self._output._isPlaying = True
 
         #Trigger ADSR release
         elif message.type == 'note_off':
-            #if self._debug_mode > 0:
-            #    print(f"Note OFF --- MIDI value: {message.note}, Velocity: {message.velocity}, Note: {mtof.mton_calc(message.note)}, Frequency: {mtof.mtof_calc(message.note)}")
             
             self.releaseVoice(message.note)
-
-            #if self._debug_mode > 0:
-            #    print("Active voices:", [x for x in self._voices if x != UNUSED])
 
             #If no voices are active, stop playing
             active_voices = [v for v in self._voices if v != UNUSED]
@@ -229,9 +218,6 @@ class Synth(MIDI.MIDI_device):
             if self._debug_mode > 0:
                 print("Invalid voice value, no new voice added")
             return
-        
-        # Count active voices for debugging
-        active_count = sum(1 for v in self._voices if v != UNUSED)
         
         # First check for duplicate voices:
         for i in range(consts.MAX_VOICES):
@@ -303,8 +289,6 @@ class Synth(MIDI.MIDI_device):
         for i in range(consts.MAX_VOICES):
             if self._voices[i] != UNUSED and self._envelopes[i].isOff():
                 self._voices[i] = UNUSED
-                #if self._debug_mode == 2:
-                #    print(f"Removing finished voice at index {i}")
    
     #Consolidate audio from wavetable and voice list to a buffer for output
     def getAudioBuffer(self):
@@ -487,27 +471,3 @@ class Synth(MIDI.MIDI_device):
         self._needs_redraw = False
     def needsRedraw(self) -> bool:
         return self._needs_redraw
-
-
-
-#Runs the synth
-if __name__ == "__main__":
-
-    synth = Synth()
-
-    #Either play the MIDI instrument or spoof some messages
-    match synth._device_is_connected:
-        case True:
-            #Hack to let me test MIDI objects
-            while True:
-                time.sleep(1)
-                #if synth.needsRedraw():
-                #    synth.visualize()
-        case False:
-            #Spoof a few notes
-            for i in range(consts.MAX_VOICES * 2):
-                synth.handleMessage(mido.Message('note_on', note=(consts.A_440 - (2 * consts.OCTAVE)) + (2 * i)))
-                time.sleep(0.2)
-                synth.handleMessage(mido.Message('note_off', note=(consts.A_440 - (2 * consts.OCTAVE)) + (2 * i)))
-                time.sleep(0.2)
-            time.sleep(consts.RELEASE + 0.2)

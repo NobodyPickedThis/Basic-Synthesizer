@@ -5,8 +5,6 @@ import math
 
 from lib import consts
 
-# FIXME commented out debug statements to check efficiency
-
 # See https://www.desmos.com/calculator/nrn6oabn6h for preliminary math
 
 # Envelope generator object
@@ -234,7 +232,7 @@ class ADSR():
         sustain_segment = np.full(s_len, fill_value=self._sustain[self._S_param])
         r_len = int(self._release[self._R_param])
         release_segment = np.zeros(r_len)
-        scale_factor = max(self._sustain[self._S_param], self._value) * min(1, self._value / max(self._sustain[self._S_param], 0.00000000001))
+        scale_factor = self._sustain[self._S_param] * min(1, self._sustain[self._S_param] / max(self._sustain[self._S_param], 0.00000000001))
         for i in range(r_len):
             release_segment[i] = self.interpolateInArray(self._R_values, i, r_len) * scale_factor
 

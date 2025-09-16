@@ -7,7 +7,6 @@ import time
 import threading
 import numpy as np
 
-# FIXME create basic GUI and add it here
 class Manager:
     def __init__(self):
         # Components
@@ -23,10 +22,8 @@ class Manager:
 
     def start(self):
         self._is_running = True
-
-        # FIXME replace with call to open GUI. That will block until GUI is closed,
-        # so the sleep call acts as a hack to simulate that until user force-closes.
         
+        # Main loop
         try:
             while self._is_running:
                 self._update_visualization_if_needed()

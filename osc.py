@@ -54,7 +54,6 @@ class osc():
                     pass
 
             #Advance phase, keep within reasonable range 
-            #FIXME is the range adjustment necessary?
             generation_phase += (2 * math.pi * frequency) / consts.BITRATE
             if generation_phase > 2 * math.pi:
                 generation_phase -= 2 * math.pi
