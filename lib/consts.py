@@ -31,7 +31,10 @@ MAX_FREQ = 20000
 MIN_FREQ = 20
 MAX_MIDI = 127
 
+# Graph properties
 NUM_GRAPHS = 2
+WAVEFORM_PLOT = 0
+ADSR_PLOT = 1
 
 DEBUG_MODE = 0              #0 --- No debug outputs
                             #1 --- Simple debug outputs

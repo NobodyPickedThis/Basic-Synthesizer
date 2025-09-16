@@ -223,34 +223,19 @@ class ADSR():
         self._value = 0.0
 
     # Visualize envelope
-    def drawEnvelope(self, plot, pos: int = 1) -> None:
+    def getEnvelopeData(self) -> np.array:
 
-        a_len = int(self._attack[self._A_param])
-        attack_segment = np.zeros(a_len, dtype=np.float32)
-        for i in range(a_len):
-            progress = i / (a_len / self._array_size)
-            attack_segment[i] = self.interpolateInArray(self._A_values, progress, self._array_size)
-
+        attack_segment = self._A_values
         d_len = int(self._decay[self._D_param])
-        decay_segment = np.zeros(d_len, dtype=np.float32)
+        decay_segment = np.zeros(d_len)
         for i in range(d_len):
-            progress = i / (d_len / self._array_size)
-            decay_segment[i] = self.interpolateInArray(self._D_values, progress, self._array_size)
-
-        s_len = self._array_size // 4
-        sustain_segment = np.zeros(s_len, dtype=np.float32)
-        for i in range(s_len):
-            sustain_segment[i] = self._sustain[self._S_param]
-
+            decay_segment[i] = ((1 - self._sustain[self._S_param]) * (self.interpolateInArray(self._D_values, i, d_len))) + self._sustain[self._S_param]
+        s_len = int(self._array_size // 4)
+        sustain_segment = np.full(s_len, fill_value=self._sustain[self._S_param])
         r_len = int(self._release[self._R_param])
-        release_segment = np.zeros(r_len, dtype=np.float32)
+        release_segment = np.zeros(r_len)
+        scale_factor = max(self._sustain[self._S_param], self._value) * min(1, self._value / max(self._sustain[self._S_param], 0.00000000001))
         for i in range(r_len):
-            progress = i / (r_len / self._array_size)
-            release_segment[i] = self._sustain[self._S_param] * self.interpolateInArray(self._R_values, progress, self._array_size)
+            release_segment[i] = self.interpolateInArray(self._R_values, i, r_len) * scale_factor
 
-
-
-
-
-
-        plot.drawWaveform(np.concat((attack_segment, decay_segment, sustain_segment, release_segment)), pos)
+        return np.concat((attack_segment, decay_segment, sustain_segment, release_segment))

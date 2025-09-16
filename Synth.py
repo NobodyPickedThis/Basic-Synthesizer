@@ -86,9 +86,8 @@ class Synth(MIDI.MIDI_device):
         if self._debug_mode == 3:
             midi_conv_timer = time.perf_counter() - start
         
-        #Visualizer class and output waveform list
-        self._visualizer = Waveform_Visualizer.Plot()
-        self._needs_redraw = False
+        #If parameters have updated, this lets the manager class know
+        self._needs_redraw = True
 
         #Parameter controller
         self._Parameter_Interface = Parameter_Interface.Parameter_Interface()
@@ -134,6 +133,10 @@ class Synth(MIDI.MIDI_device):
             print()
             print(f"TOTAL INTERNAL BOOT TIME: {(1000 * out_stream_timer):.2f}ms ({(out_stream_timer):.2f}s)")
             print(f"===================================================")
+
+        if self._debug_mode > 0 and self._debug_mode < 3:
+            self.printAllMIDIDevices()
+            print("Connected to MIDI input:", synth._device_is_connected)
 
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
@@ -479,15 +482,10 @@ class Synth(MIDI.MIDI_device):
         #Convert to int16
         return filtered_buffer.astype(np.int16)
     
-    #Visualizes waveform and envelope
-    #FIXME make it update in realtime with params!
-    def visualize(self) -> None:
-        self._osc.drawWaveform(self._visualizer, 0)
-        self._envelopes[0].drawEnvelope(self._visualizer, 1)
-        self._visualizer.display()
+    #Notes that parameters have changed since last update
+    def redraw(self):
+        self._needs_redraw = False
     def needsRedraw(self) -> bool:
-        if self._debug_mode > 0 and self._needs_redraw:
-            print("Plot needs redrawing")
         return self._needs_redraw
 
 
@@ -496,12 +494,6 @@ class Synth(MIDI.MIDI_device):
 if __name__ == "__main__":
 
     synth = Synth()
-    synth.printAllMIDIDevices()
-
-    print("Connected to MIDI input:", synth._device_is_connected)
-
-    #Visualize wave and envelope data
-    synth.visualize()
 
     #Either play the MIDI instrument or spoof some messages
     match synth._device_is_connected:
