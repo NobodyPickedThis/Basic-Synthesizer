@@ -1,8 +1,5 @@
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import numpy as np
-import queue
-import threading
 from lib import consts
 
 # Handles display for visualizations of wave shape, envelope, etc...

@@ -4,7 +4,6 @@ import Waveform_Visualizer
 from lib import consts
 
 import time
-import threading
 import numpy as np
 
 class Manager:
