@@ -60,7 +60,7 @@ class ADSR():
         for i in range(self._array_size):
             progress = i / (self._array_size - 1)
             # Linear value
-            linear_value = (1.0 - self._sustain[self._S_param]) - ((1.0 - self._sustain[self._S_param])* progress)
+            linear_value = 1.0  - progress
             # Apply exponential decay function based on coefficient
             self._D_values[i] = (linear_value * math.e ** (- consts.EXPONENTIAL_DECAY_COEFFICIENT * progress))
     # Populate Release array
@@ -143,7 +143,7 @@ class ADSR():
 
                     # Only evaluate if within number of samples expected given the current decay parameter
                     if pos < decay_samples:
-                        env_val = self._sustain[self._S_param] + self.interpolateInArray(self._D_values, pos, decay_samples) 
+                        env_val = ((1 - self._sustain[self._S_param]) * (self.interpolateInArray(self._D_values, pos, decay_samples))) + self._sustain[self._S_param]
                     # Otherwise sustain value has been reached
                     else:
                         env_val = self._sustain[self._S_param]
