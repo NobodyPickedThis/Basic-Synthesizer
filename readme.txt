@@ -8,4 +8,8 @@
 
 =====FEATURES TO WORK ON=====
 
- 1) Filter frequency response plot?
+ 1) Filter frequency response plot
+
+ 2) Auto-detect MIDI input devices
+
+ 3) Create exe
