@@ -49,9 +49,11 @@ class Manager:
         try:
             waveform_data = self._generate_waveform_data()
             envelope_data = self._generate_envelope_data()
+            filter_data = self._generate_filter_data()
         
             self.visualizer.update_plot(consts.WAVEFORM_PLOT, waveform_data)
             self.visualizer.update_plot(consts.ADSR_PLOT, envelope_data)
+            self.visualizer.update_plot(consts.FILTER_PLOT, y_data=filter_data[1], x_data=filter_data[0])
 
             self.synth.redraw()
             self._last_vis_update = current_time
@@ -74,6 +76,12 @@ class Manager:
         
     def _generate_envelope_data(self):
         return self.synth._envelopes[0].getEnvelopeData()
+    
+    def _generate_filter_data(self):
+        [w, h] = self.synth._filter1.getFreqResponse()
+        if consts.POLES == 4:
+            np.square(h) # Account for cascaded filters
+        return [w, h]
 
 
 #Runs the synth

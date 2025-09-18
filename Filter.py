@@ -1,5 +1,8 @@
 import math
 import numpy as np
+import scipy
+from scipy import signal
+
 from lib import consts
 
 class Filter():
@@ -68,9 +71,6 @@ class Filter():
         cos_omega = math.cos(omega)
         alpha = sin_omega / (2 * self._Q)
 
-        # The application of our filter no longer depends on filter types,
-        # which are expressed by the coefficients. So we determine 
-        # behaviour at this stage rather than during the use.
         if self._type == consts.HI_CUT: 
             self._b0 = (1.0 - cos_omega) / 2.0
             self._b1 = 1.0 - cos_omega
@@ -159,6 +159,9 @@ class Filter():
 
         return (output * 32767.0).astype(np.int16)
 
-        
-
+    # For visualization
+    def getFreqResponse(self) -> np.array:
+        w, h = signal.freqz(b=[self._b0, self._b1, self._b2], a=[self._a0, self._a1, self._a2])
+        h = np.real(h)
+        return [w, h]
         

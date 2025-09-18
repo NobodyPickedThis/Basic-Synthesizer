@@ -14,6 +14,7 @@ class Plot():
             
         self._axes[consts.WAVEFORM_PLOT].set_title('Waveform')
         self._axes[consts.ADSR_PLOT].set_title('Envelope')
+        self._axes[consts.FILTER_PLOT].set_title('Filter Response')
             
         # Initialize with empty plots
         for ax in self._axes:
