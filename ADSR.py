@@ -44,6 +44,7 @@ class ADSR():
         # State tracking
         self._state = consts.OFF
         self._position = 0.0
+        self._positions = np.empty(consts.BUFFER_SIZE, dtype=np.float32)
         self._value = 0.0
 
         self._debug_mode = debug_mode
@@ -76,6 +77,7 @@ class ADSR():
             return
         if decay is not None:
             self._D_param = decay
+            return
         if sustain is not None:
             self._S_param = sustain
             return
@@ -100,28 +102,25 @@ class ADSR():
     # Return envelope data, increment buffer chunk
     def applyEnvelope(self, pre_env_data):
 
+        # Populate buffers
         return_data = self._empty_buffer
+        self._positions = np.arange(self._position, self._position + consts.BUFFER_SIZE)
 
+        # Find appropriate stage of envelope
         match self._state:
             case consts.A:
 
                 attack_samples = self._attack[self._A_param]
 
-                for i in range(consts.BUFFER_SIZE):
+                mask = self._positions < attack_samples
+                scaled_pos = self._positions * (self._array_size - 1) / attack_samples
+                indices = np.clip(scaled_pos.astype(np.int32), 0, self._array_size - 2)
+                fractions = scaled_pos - indices
 
-                    pos = self._position + i
-                    env_val = 0.0
-
-                    # Only evaluate if within number of samples expected given the current attack parameter
-                    if pos < attack_samples:
-                        env_val = self.interpolateInArray(self._A_values, pos, attack_samples)
-                    # Otherwise max amplitude has been reached
-                    else:
-                        env_val = 1.0
-
-                    return_data[i] = pre_env_data[i] * env_val
-
-                self._value = env_val    
+                env_vals = np.where(mask, self._A_values[indices] * (1.0 - fractions) + self._A_values[indices + 1] * fractions, 1.0)   
+                return_data = pre_env_data * env_vals
+                
+                self._value = env_vals[-1]
                 self._position += consts.BUFFER_SIZE
 
                 if self._position >= attack_samples:
@@ -134,21 +133,16 @@ class ADSR():
 
                 decay_samples = self._decay[self._D_param]
 
-                for i in range(consts.BUFFER_SIZE):
+                mask = self._positions < decay_samples
+                scaled_pos = self._positions * (self._array_size - 1) / decay_samples
+                indices = np.clip(scaled_pos.astype(np.int32), 0, self._array_size - 2)
+                fractions = scaled_pos - indices
 
-                    pos = self._position + i
-                    env_val = 0.0 
-
-                    # Only evaluate if within number of samples expected given the current decay parameter
-                    if pos < decay_samples:
-                        env_val = ((1 - self._sustain[self._S_param]) * (self.interpolateInArray(self._D_values, pos, decay_samples))) + self._sustain[self._S_param]
-                    # Otherwise sustain value has been reached
-                    else:
-                        env_val = self._sustain[self._S_param]
-                    
-                    return_data[i] = pre_env_data[i] * env_val
+                interpolated_vals = np.where(mask, self._D_values[indices] * (1.0 - fractions) + self._D_values[indices + 1] * fractions, 0.0) 
+                env_vals = ((1 - self._sustain[self._S_param]) * interpolated_vals) + self._sustain[self._S_param]  
+                return_data = pre_env_data * env_vals
                 
-                self._value = env_val    
+                self._value = env_vals[-1]  
                 self._position += consts.BUFFER_SIZE
 
                 if self._position >= decay_samples:
@@ -159,11 +153,9 @@ class ADSR():
             
             case consts.S:
 
-                for i in range(consts.BUFFER_SIZE):
-                    env_val = self._sustain[self._S_param] 
-                    return_data[i] = pre_env_data[i] * env_val
+                return_data = pre_env_data * self._sustain[self._S_param]
 
-                self._value = env_val    
+                self._value = self._sustain[self._S_param]
                 self._position += consts.BUFFER_SIZE
                 
                 return return_data
@@ -171,19 +163,20 @@ class ADSR():
             case consts.R:
 
                 release_samples = self._release[self._R_param]
-
+                
                 scale_factor = max(self._sustain[self._S_param], self._value) * min(1, self._value / max(self._sustain[self._S_param], 0.00000000001))
 
-                for i in range(consts.BUFFER_SIZE):
+                mask = self._positions < release_samples
 
-                    pos = self._position + i
+                # Calculate for positions within release
+                scaled_pos = np.clip(self._positions, 0, release_samples - 1) * (self._array_size - 1) / release_samples
+                indices = np.clip(scaled_pos.astype(np.int32), 0, self._array_size - 2)
+                fractions = scaled_pos - indices
 
-                    # Bounds checking for runtime updates
-                    if pos < release_samples:
-                        env_val = self.interpolateInArray(self._R_values, pos, release_samples) * scale_factor
-                        return_data[i] = pre_env_data[i] * env_val
-                    else:
-                        return_data[i] = 0.0
+                interpolated_vals = self._R_values[indices] * (1.0 - fractions) + self._R_values[indices + 1] * fractions 
+                env_vals = np.where(mask, scale_factor * interpolated_vals, 0.0)
+
+                return_data = pre_env_data * env_vals
 
                 self._position += consts.BUFFER_SIZE
 
@@ -191,7 +184,7 @@ class ADSR():
                 if self._position >= release_samples:
                     self.reset()
                     return np.zeros(consts.BUFFER_SIZE, float)
-
+        
                 return return_data
 
             case _:

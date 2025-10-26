@@ -1,5 +1,5 @@
 from lib import consts
-import numpy
+import time
 import numpy as np
 
 # Allows communication between MIDI messages and their associated parameters.
@@ -15,21 +15,32 @@ class Parameter_Interface:
         for i in range(0, consts.MAX_MIDI + 1):
             self._cutoff_bank[i]  = self.generateCutoff(i)
             self._Q_bank[i]       = self.generateLinear(i, consts.MAX_Q, consts.MIN_Q)
+        
+        # Rate limiting
+        self._last_cutoff_update = 0
+        self._last_q_update = 0
+        self._update_interval = 0.016
 
     # Update the associated object with new parameters
     def handle_cc_message(self, cc_number, cc_value):
 
+        current_time = time.time()
+
         match cc_number:
             case consts.CUTOFF_CC:
-                
-                self._new_cutoff = self._cutoff_bank[cc_value]
 
-                if consts.DEBUG_MODE == 2:
-                    print(f"Updating cutoff with new frequency: {self._new_cutoff}")
+                if current_time - self._last_cutoff_update > self._update_interval:
+                
+                    self._new_cutoff = self._cutoff_bank[cc_value]
+
+                    if consts.DEBUG_MODE == 2:
+                        print(f"Updating cutoff with new frequency: {self._new_cutoff}")
 
             case consts.Q_CC:
+
+                if current_time - self._last_q_update > self._update_interval:
                 
-                self._new_Q = self._Q_bank[cc_value]
+                    self._new_Q = self._Q_bank[cc_value]
 
                 if consts.DEBUG_MODE == 2:
                     print(f"Updating resonance: {self._new_Q:.2f}")

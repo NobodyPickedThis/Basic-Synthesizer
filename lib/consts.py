@@ -1,11 +1,11 @@
 # ========== REFERENCE VALUES ==========
 BITRATE = 48000
 NYQUIST = BITRATE / 2
-BUFFER_SIZE = 128
+BUFFER_SIZE = 256
 
 # Name of desired device (or leave blank '' for auto detection) 
 DEVICE_NAME = 'MPKmini2'
-INTERFACE_NAME = ''
+INTERFACE_NAME = 'Focusrite'
 AUDIO_API = ''
 
 MAX_VOICES = 8
@@ -37,7 +37,7 @@ WAVEFORM_PLOT = 0
 ADSR_PLOT = 1
 FILTER_PLOT = 2
 
-DEBUG_MODE = 3              #0 --- No debug outputs
+DEBUG_MODE = 0              #0 --- No debug outputs
                             #1 --- Simple debug outputs
                             #2 --- Verbose debug outputs
                             #3 --- Efficiency debug outputs (Does not include many other debug outputs)
@@ -70,7 +70,8 @@ MAX_Q = 2
 MIN_Q = 0.5
 FILTER_TYPE = HI_CUT  # HI_CUT or LOW_CUT
 FILTER_ON = True    
-POLES = 4   # 2 or 4
+POLES = 2   # 2 or 4
+INTERP_STEPS = 4 # Precision of interpolation
 
 # MIDI CC Bindings
 ATTACK_CC = 1
