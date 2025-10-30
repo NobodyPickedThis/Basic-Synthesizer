@@ -48,10 +48,11 @@ class Manager:
             return
         try:
             waveform_data = self._generate_waveform_data()
+
             envelope_data = self._generate_envelope_data()
             filter_data = self._generate_filter_data()
         
-            self.visualizer.update_plot(consts.WAVEFORM_PLOT, waveform_data)
+            self.visualizer.update_plot(consts.WAVEFORM_PLOT, np.concat((waveform_data, waveform_data)))
             self.visualizer.update_plot(consts.ADSR_PLOT, envelope_data)
             self.visualizer.update_plot(consts.FILTER_PLOT, y_data=filter_data[1], x_data=filter_data[0])
 
