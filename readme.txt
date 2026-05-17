@@ -11,10 +11,12 @@
 
 =====FEATURES TO WORK ON=====
 
- 1) Fix displays not working (some matplotlib dependency is broken)
+ 1) Fix stuttering when adjusting parameters during runtime
+
+ 2) Reduce latency
  
- 2) Fix reverb being limited by ADSR unintentionally
+ 3) Fix reverb being limited by ADSR unintentionally
 
- 3) Improve device autodetection
+ 4) Improve device autodetection
 
- 4) Make portable
+ 5) Make portable

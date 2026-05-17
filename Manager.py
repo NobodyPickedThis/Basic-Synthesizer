@@ -1,5 +1,5 @@
 import Synth
-#import Waveform_Visualizer
+import Waveform_Visualizer
 
 from lib import consts
 
@@ -10,7 +10,7 @@ class Manager:
     def __init__(self):
         # Components
         self.synth = Synth.Synth()
-        #self.visualizer = Waveform_Visualizer.Plot()
+        self.visualizer = Waveform_Visualizer.Plot()
 
         # Timing
         self._last_vis_update = 0
@@ -25,7 +25,7 @@ class Manager:
         # Main loop
         try:
             while self._is_running:
-                #self._update_visualization_if_needed()
+                self._update_visualization_if_needed()
                 time.sleep(0.016)
         except KeyboardInterrupt:
             pass
@@ -36,8 +36,8 @@ class Manager:
         self._is_running = False
 
         # Stop visualizer
-        #if self.visualizer:
-        #    self.visualizer.close()
+        if self.visualizer:
+            self.visualizer.close()
 
 
     #================VISUALIZATION================
@@ -79,7 +79,7 @@ class Manager:
         return self.synth._envelopes[0].getEnvelopeData()
     
     def _generate_filter_data(self):
-        [w, h] = self.synth._filter1.getFreqResponse()
+        [w, h] = self.synth._filter1_left.getFreqResponse()
         if consts.POLES == 4:
             np.square(h) # Account for cascaded filters
         return [w, h]
