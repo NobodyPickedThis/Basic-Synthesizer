@@ -145,9 +145,9 @@ class Filter():
                                     a2 * self._y2_R)
                     
                     # Clamp output to prevent runaway
-                    current_output_L = np.maximum(-1.0, np.minimum(1.0, current_output_L))
+                    current_output_L = max(-1.0, min(1.0, current_output_L))
                     output[i, 0] = current_output_L
-                    current_output_R = np.maximum(-1.0, np.minimum(1.0, current_output_R))
+                    current_output_R = max(-1.0, min(1.0, current_output_R))
                     output[i, 1] = current_output_R
                     
                     # Shift state variables
@@ -163,26 +163,29 @@ class Filter():
             # Reset coefficient flag
             self._new_coefficients = False
         else:
+
+            b0, b1, b2, a1, a2 = self._b0, self._b1, self._b2, self._a1, self._a2
+
             for i in range(consts.BUFFER_SIZE):
                 current_input_L = input_signal[i, 0]
                 current_input_R = input_signal[i, 1]
 
                 # 2-pole biquad difference equation
-                current_output_L = (self._b0 * current_input_L + 
-                                self._b1 * self._x1_L + 
-                                self._b2 * self._x2_L - 
-                                self._a1 * self._y1_L - 
-                                self._a2 * self._y2_L)
-                current_output_R = (self._b0 * current_input_R + 
-                                self._b1 * self._x1_R + 
-                                self._b2 * self._x2_R - 
-                                self._a1 * self._y1_R - 
-                                self._a2 * self._y2_R)
+                current_output_L = (b0 * current_input_L + 
+                                b1 * self._x1_L + 
+                                b2 * self._x2_L - 
+                                a1 * self._y1_L - 
+                                a2 * self._y2_L)
+                current_output_R = (b0 * current_input_R + 
+                                b1 * self._x1_R + 
+                                b2 * self._x2_R - 
+                                a1 * self._y1_R - 
+                                a2 * self._y2_R)
             
                 # Clamp output to prevent runaway
-                current_output_L = np.maximum(-1.0, np.minimum(1.0, current_output_L))
+                current_output_L = max(-1.0, min(1.0, current_output_L))
                 output[i, 0] = current_output_L
-                current_output_R = np.maximum(-1.0, np.minimum(1.0, current_output_R))
+                current_output_R = max(-1.0, min(1.0, current_output_R))
                 output[i, 1] = current_output_R
                 
                 # Shift state variables
