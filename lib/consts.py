@@ -46,7 +46,7 @@ DEVICE_NAME = ''
 INTERFACE_NAME = ''
 AUDIO_API = ''
 
-DEBUG_MODE = 0              #0 --- No debug outputs
+DEBUG_MODE = 3              #0 --- No debug outputs
                             #1 --- Simple debug outputs
                             #2 --- Verbose debug outputs
                             #3 --- Efficiency debug outputs (Does not include many other debug outputs)

@@ -26,23 +26,28 @@ class Filter():
 
         # State variables
         # Previous two inputs: x[n-1] and x[n-2]
-        self._x1 = 0.0      
-        self._x2 = 0.0
+        self._x1_L = 0.0      
+        self._x2_L = 0.0
+        self._x1_R = 0.0      
+        self._x2_R = 0.0
         # Previous two outputs: y[n-1] and y[n-2]
-        self._y1 = 0.0    
-        self._y2 = 0.0
+        self._y1_L = 0.0    
+        self._y2_L = 0.0
+        self._y1_R = 0.0    
+        self._y2_R = 0.0
 
         # Complicated math stuff abstracted into this function
-        self._alpha = 0.001
+        self._alpha_L = 0.001
+        self._alpha_R = 0.001
         self.calculateCoefficients()
         self._new_coefficients = False
 
         #Old coefficients used for interpolation
-        self._prev_b0, self._prev_b1, self._prev_b2, self._prev_a1, self._prev_a2 = self._b0, self._b1, self._b2, self._a1, self._a2
+        self._prev_b0_L, self._prev_b1_L, self._prev_b2_L, self._prev_a1_L, self._prev_a2_L = self._b0_L, self._b1_L, self._b2_L, self._a1_L, self._a2_L
 
     def setCutoff(self, newCutoff: int = consts.MAX_FILTER_FREQ):
         #Update old coefficients
-        self._prev_b0, self._prev_b1, self._prev_b2, self._prev_a1, self._prev_a2 = self._b0, self._b1, self._b2, self._a1, self._a2
+        self._prev_b0_L, self._prev_b1_L, self._prev_b2_L, self._prev_a1_L, self._prev_a2_L = self._b0_L, self._b1_L, self._b2_L, self._a1_L, self._a2_L
 
         #Recalculate new ones
         self._cutoff = newCutoff
@@ -55,7 +60,7 @@ class Filter():
 
     def setQ(self, newQ: int = consts.MAX_Q):
         #Update old coefficients
-        self._prev_b0, self._prev_b1, self._prev_b2, self._prev_a1, self._prev_a2 = self._b0, self._b1, self._b2, self._a1, self._a2
+        self._prev_b0_L, self._prev_b1_L, self._prev_b2_L, self._prev_a1_L, self._prev_a2_L = self._b0_L, self._b1_L, self._b2_L, self._a1_L, self._a2_L
 
         #Recalculate new ones
         self._Q = newQ
@@ -75,35 +80,48 @@ class Filter():
         alpha = sin_omega / (2 * self._Q)
 
         if self._type == consts.HI_CUT: 
-            self._b0 = (1.0 - cos_omega) / 2.0
-            self._b1 = 1.0 - cos_omega
-            self._b2 = (1.0 - cos_omega) / 2.0
-            self._a0 = 1.0 + alpha  # Normalization factor
-            self._a1 = -2.0 * cos_omega
-            self._a2 = 1.0 - alpha
+            self._b0_L = (1.0 - cos_omega) / 2.0
+            self._b1_L = 1.0 - cos_omega
+            self._b2_L = (1.0 - cos_omega) / 2.0
+            self._a0_L = 1.0 + alpha  # Normalization factor
+            self._a1_L = -2.0 * cos_omega
+            self._a2_L = 1.0 - alpha
+
+            self._b0_R = (1.0 - cos_omega) / 2.0
+            self._b1_R = 1.0 - cos_omega
+            self._b2_R = (1.0 - cos_omega) / 2.0
+            self._a0_R = 1.0 + alpha  # Normalization factor
+            self._a1_R = -2.0 * cos_omega
+            self._a2_R = 1.0 - alpha
         
         elif self._type == consts.LOW_CUT:
-            self._b0 = (1.0 + cos_omega) / 2.0
-            self._b1 = -(1.0 + cos_omega)
-            self._b2 = (1.0 + cos_omega) / 2.0
-            self._a0 = 1.0 + alpha  # Normalization factor
-            self._a1 = -2.0 * cos_omega
-            self._a2 = 1.0 - alpha
+            self._b0_L = (1.0 + cos_omega) / 2.0
+            self._b1_L = -(1.0 + cos_omega)
+            self._b2_L = (1.0 + cos_omega) / 2.0
+            self._a0_L = 1.0 + alpha  # Normalization factor
+            self._a1_L = -2.0 * cos_omega
+            self._a2_L = 1.0 - alpha
+
+            self._b0_R = (1.0 + cos_omega) / 2.0
+            self._b1_R = -(1.0 + cos_omega)
+            self._b2_R = (1.0 + cos_omega) / 2.0
+            self._a0_R = 1.0 + alpha  # Normalization factor
+            self._a1_R = -2.0 * cos_omega
+            self._a2_R = 1.0 - alpha
 
         else:
             raise Exception(ValueError)
 
         # Normalize all coefficients by a0
-        self._b0 /= self._a0
-        self._b1 /= self._a0
-        self._b2 /= self._a0
-        self._a1 /= self._a0
-        self._a2 /= self._a0
-
+        self._b0_L /= self._a0_L
+        self._b1_L /= self._a0_L
+        self._b2_L /= self._a0_L
+        self._a1_L /= self._a0_L
+        self._a2_L /= self._a0_L
     # Applies the filter to all samples of a buffer
     def use(self, input_signal: np.array) -> np.array:
         # Normalize input to ±1.0
-        output = np.empty(consts.BUFFER_SIZE, np.float32)
+        output = np.column_stack((np.empty(consts.BUFFER_SIZE, np.float32), np.empty(consts.BUFFER_SIZE, np.float32)))
 
         # If coefficients have changed, use interpolation
         if self._new_coefficients:
@@ -112,11 +130,17 @@ class Filter():
 
                 # Interpolate coefficients for cleaner parameter modulation
                 progress = (step + 1) / consts.INTERP_STEPS
-                b0 = self._prev_b0 + (self._b0 - self._prev_b0) * progress
-                b1 = self._prev_b1 + (self._b1 - self._prev_b1) * progress
-                b2 = self._prev_b2 + (self._b2 - self._prev_b2) * progress
-                a1 = self._prev_a1 + (self._a1 - self._prev_a1) * progress
-                a2 = self._prev_a2 + (self._a2 - self._prev_a2) * progress
+                b0_L = self._prev_b0_L + (self._b0_L - self._prev_b_L) * progress
+                b1_L = self._prev_b1_L + (self._b1_L - self._prev_b1_L) * progress
+                b2_L = self._prev_b2_L + (self._b2_L - self._prev_b2_L) * progress
+                a1_L = self._prev_a1_L + (self._a1_L - self._prev_a1_L) * progress
+                a2_L = self._prev_a2_L + (self._a2_L - self._prev_a2_L) * progress
+
+                b0_R = self._prev_b0_R + (self._b0_R - self._prev_b_R) * progress
+                b1_R = self._prev_b1_R + (self._b1_R - self._prev_b1_R) * progress
+                b2_R = self._prev_b2_R + (self._b2_R - self._prev_b2_R) * progress
+                a1_R = self._prev_a1_R + (self._a1_R - self._prev_a1_R) * progress
+                a2_R = self._prev_a2_R + (self._a2_R - self._prev_a2_R) * progress
 
                 i_0 = step * self._samples_per_step
                 i_f = i_0 + self._samples_per_step
@@ -125,52 +149,77 @@ class Filter():
                 # Interpolate rather than calculate every sample
                 for i in range(i_0, i_f):
 
-                    current_input = input_signal[i]
+                    current_input_L = input_signal[i, 0]
+                    current_input_R = input_signal[i, 1]
 
                     # 2-pole biquad difference equation
-                    current_output = (b0 * current_input + 
-                                    b1 * self._x1 + 
-                                    b2 * self._x2 - 
-                                    a1 * self._y1 - 
-                                    a2 * self._y2)
+                    current_output_L = (b0_L * current_input_L + 
+                                    b1_L * self._x1_L + 
+                                    b2_L * self._x2_L - 
+                                    a1_L * self._y1_L - 
+                                    a2_L * self._y2_L)
+                    current_output_R = (b0_R * current_input_R + 
+                                    b1_R * self._x1_R + 
+                                    b2_R * self._x2_R - 
+                                    a1_R * self._y1_R - 
+                                    a2_R * self._y2_R)
+                    
                     # Clamp output to prevent runaway
-                    current_output = np.maximum(-1.0, np.minimum(1.0, current_output))
-                    output[i] = current_output
+                    current_output_L = np.maximum(-1.0, np.minimum(1.0, current_output_L))
+                    output[i, 0] = current_output_L
+                    current_output_R = np.maximum(-1.0, np.minimum(1.0, current_output_R))
+                    output[i, 1] = current_output_R
                     
                     # Shift state variables
-                    self._x2 = self._x1
-                    self._x1 = current_input
-                    self._y2 = self._y1  
-                    self._y1 = current_output
+                    self._x2_L = self._x1_L
+                    self._x1_L = current_input_L
+                    self._y2_L = self._y1_L
+                    self._y1_L = current_output_L
+                    self._x2_R = self._x1_R
+                    self._x1_R = current_input_R
+                    self._y2_R = self._y1_R
+                    self._y1_R = current_output_R
 
             # Reset coefficient flag
             self._new_coefficients = False
         else:
             for i in range(consts.BUFFER_SIZE):
-                current_input = input_signal[i]
+                current_input_L = input_signal[i, 0]
+                current_input_R = input_signal[i, 1]
 
                 # 2-pole biquad difference equation
-                current_output = (self._b0 * current_input + 
-                                self._b1 * self._x1 + 
-                                self._b2 * self._x2 - 
-                                self._a1 * self._y1 - 
-                                self._a2 * self._y2)
+                current_output_L = (self._b0_L * current_input_L + 
+                                self._b1_L * self._x1_L + 
+                                self._b2_L * self._x2_L - 
+                                self._a1_L * self._y1_L - 
+                                self._a2_L * self._y2_L)
+                current_output_R = (b0_R * current_input_R + 
+                                b1_R * self._x1_R + 
+                                b2_R * self._x2_R - 
+                                a1_R * self._y1_R - 
+                                a2_R * self._y2_R)
             
                 # Clamp output to prevent runaway
-                current_output = np.maximum(-1.0, np.minimum(1.0, current_output))
-                output[i] = current_output
+                current_output_L = np.maximum(-1.0, np.minimum(1.0, current_output_L))
+                output[i, 0] = current_output_L
+                current_output_R = np.maximum(-1.0, np.minimum(1.0, current_output_R))
+                output[i, 1] = current_output_R
                 
                 # Shift state variables
-                self._x2 = self._x1
-                self._x1 = current_input
-                self._y2 = self._y1  
-                self._y1 = current_output
+                self._x2_L = self._x1_L
+                self._x1_L = current_input_L
+                self._y2_L = self._y1_L 
+                self._y1_L = current_output_L
+                self._x2_R = self._x1_R
+                self._x1_R = current_input_R
+                self._y2_R = self._y1_R
+                self._y1_R = current_output_R
 
         return output
 
     # For visualization
     def getFreqResponse(self) -> np.array:
-        w, h = signal.freqz(b=[self._b0, self._b1, self._b2], a=[self._a0, self._a1, self._a2])
+        w, h = signal.freqz(b=[self._b0_L, self._b1_L, self._b2_L], a=[self._a0_L, self._a1_L, self._a2_L])
         h = np.real(h)
         return [w, h]
         
