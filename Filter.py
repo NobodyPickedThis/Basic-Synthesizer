@@ -106,7 +106,6 @@ class Filter():
         
     # Applies the filter to all samples of a buffer
     def use(self, input_signal: np.array) -> np.array:
-        # Normalize input to ±1.0
         output = np.empty((consts.BUFFER_SIZE, 2), dtype=np.float32)
 
         # If coefficients have changed, use interpolation

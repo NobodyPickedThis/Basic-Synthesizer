@@ -141,6 +141,9 @@ class Synth(MIDI.MIDI_device):
             self.printAllMIDIDevices()
             print("Connected to MIDI input:", self._device_is_connected)
 
+        # FIXME first few buffers are super horrendous, so wait a bit
+        time.sleep(1)
+
     #Overloaded MIDI handler method, updates oscillator frequency, starts and stops playback
     def handleMessage(self, message):
 
@@ -172,7 +175,7 @@ class Synth(MIDI.MIDI_device):
             if self._debug_mode == 2:
                 print(f"Control Change: {message.control}, Value: {message.value}")
 
-            # ADSR parameters handled using ADSR bank class
+            # Paramter control for Envelope, Filter, Reverb, and Waveshape
             match message.control:
                 case consts.ATTACK_CC:
                     for e in self._envelopes:
@@ -340,13 +343,13 @@ class Synth(MIDI.MIDI_device):
             self._Parameter_Interface._new_Q = None
             self._filter1.setQ(new_Q)
 
-        #Apply reverb
-        reverb_buffer = self._reverb.use(mixed_buffer)
-
         #Only use a single filter
-        filtered_buffer = self._filter1.use(reverb_buffer)
+        filtered_buffer = self._filter1.use(np.column_stack((mixed_buffer, mixed_buffer)))
 
-        return filtered_buffer
+        #Apply reverb
+        reverb_buffer = self._reverb.use(filtered_buffer)
+
+        return reverb_buffer
     def get4PoleFilterAudioBuffer(self):
             
         #Ensure finished voices are set as such
@@ -365,17 +368,15 @@ class Synth(MIDI.MIDI_device):
             new_cutoff = self._Parameter_Interface._new_cutoff
             self._Parameter_Interface._new_cutoff = None
             self._filter1.setCutoff(new_cutoff)
-            self._filter1_right.setCutoff(new_cutoff)
             self._filter2.setCutoff(new_cutoff)
         if self._Parameter_Interface._new_Q is not None:
             new_Q = self._Parameter_Interface._new_Q
             self._Parameter_Interface._new_Q = None
             self._filter1.setQ(new_Q)
-            self._filter1_right.setQ(new_Q)
             self._filter2.setQ(new_Q)
 
-        #Casecade filters
-        filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
+        #Cascade filters
+        filtered_buffer = self._filter2.use(self._filter1.use(np.column_stack((mixed_buffer, mixed_buffer))))
 
         #Apply reverb
         reverb_buffer = self._reverb.use(filtered_buffer)
@@ -430,18 +431,17 @@ class Synth(MIDI.MIDI_device):
             self._Parameter_Interface._new_Q = None
             self._filter1.setQ(new_Q)
 
-        
-        #Apply reverb
-        reverb_buffer = self._reverb.use(mixed_buffer)
-
         #Only use a single filter
-        filtered_buffer = self._filter1.use(reverb_buffer)
+        filtered_buffer = self._filter1.use(np.column_stack((mixed_buffer, mixed_buffer)))
+
+        #Apply reverb
+        reverb_buffer = self._reverb.use(filtered_buffer)
 
         ms = (time.perf_counter() - start)*1000
         if ms >  consts.TOO_SLOW:
             print(f"SLOW BUFFER GENERATION: {ms:.2f}ms")
 
-        return filtered_buffer
+        return reverb_buffer
     def getDebug4PoleFilterAudioBuffer(self):
 
         start = time.perf_counter()
@@ -465,19 +465,17 @@ class Synth(MIDI.MIDI_device):
             new_cutoff = self._Parameter_Interface._new_cutoff
             self._Parameter_Interface._new_cutoff = None
             self._filter1.setCutoff(new_cutoff)
-            self._filter1_right.setCutoff(new_cutoff)
             self._filter2.setCutoff(new_cutoff)
         if self._Parameter_Interface._new_Q is not None:
             new_Q = self._Parameter_Interface._new_Q
             self._Parameter_Interface._new_Q = None
             self._filter1.setQ(new_Q)
-            self._filter1_right.setQ(new_Q)
             self._filter2.setCutoff(new_cutoff)
         filter_param_time = (time.perf_counter() - filter_param_start) * 1000
 
-        #Casecade filters
+        #Cascade filters
         filter_start = time.perf_counter()
-        filtered_buffer = self._filter2.use(self._filter1.use(mixed_buffer))
+        filtered_buffer = self._filter2.use(self._filter1.use(np.column_stack((mixed_buffer, mixed_buffer))))
         filter_time = (time.perf_counter() - filter_start) * 1000
 
         #Apply reverb

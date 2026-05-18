@@ -52,10 +52,10 @@ DEBUG_MODE = 3              #0 --- No debug outputs
                             #3 --- Efficiency debug outputs (Does not include many other debug outputs)
 
 # Debugging buffer efficiency threshold (ms)
-TOO_SLOW = 2.0
+TOO_SLOW = 4
 
 BITRATE = 48000
-MAX_VOICES = 8
+NYQUIST = BITRATE // 2
 BUFFER_SIZE = 256           # This is the mono buffer size, using the reverb 
                             # changes the audio to stereo and doubles this size
 IR_FFT_SIZE = 2 * BUFFER_SIZE
@@ -71,14 +71,15 @@ IR_FFT_SIZE = 2 * BUFFER_SIZE
 
 
 # =============== REFERENCE VALUES ================
-NYQUIST = BITRATE // 2
+
+# Polyphony
+MAX_VOICES = 8
 
 # MIDI control values
 A_440 = 69
 OCTAVE = 12
 NOTE_ON = 1
 NOTE_OFF = 0
-
 # Envelope state tracking
 OFF = 0
 A = 1
