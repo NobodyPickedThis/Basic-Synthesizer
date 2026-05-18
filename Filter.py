@@ -44,10 +44,12 @@ class Filter():
 
         #Old coefficients used for interpolation
         self._prev_b0_L, self._prev_b1_L, self._prev_b2_L, self._prev_a1_L, self._prev_a2_L = self._b0_L, self._b1_L, self._b2_L, self._a1_L, self._a2_L
+        self._prev_b0_R, self._prev_b1_R, self._prev_b2_R, self._prev_a1_R, self._prev_a2_R = self._b0_R, self._b1_R, self._b2_R, self._a1_R, self._a2_R
 
     def setCutoff(self, newCutoff: int = consts.MAX_FILTER_FREQ):
         #Update old coefficients
         self._prev_b0_L, self._prev_b1_L, self._prev_b2_L, self._prev_a1_L, self._prev_a2_L = self._b0_L, self._b1_L, self._b2_L, self._a1_L, self._a2_L
+        self._prev_b0_R, self._prev_b1_R, self._prev_b2_R, self._prev_a1_R, self._prev_a2_R = self._b0_R, self._b1_R, self._b2_R, self._a1_R, self._a2_R
 
         #Recalculate new ones
         self._cutoff = newCutoff
@@ -61,6 +63,7 @@ class Filter():
     def setQ(self, newQ: int = consts.MAX_Q):
         #Update old coefficients
         self._prev_b0_L, self._prev_b1_L, self._prev_b2_L, self._prev_a1_L, self._prev_a2_L = self._b0_L, self._b1_L, self._b2_L, self._a1_L, self._a2_L
+        self._prev_b0_R, self._prev_b1_R, self._prev_b2_R, self._prev_a1_R, self._prev_a2_R = self._b0_R, self._b1_R, self._b2_R, self._a1_R, self._a2_R
 
         #Recalculate new ones
         self._Q = newQ
@@ -118,6 +121,12 @@ class Filter():
         self._b2_L /= self._a0_L
         self._a1_L /= self._a0_L
         self._a2_L /= self._a0_L
+
+        self._b0_R /= self._a0_R
+        self._b1_R /= self._a0_R
+        self._b2_R /= self._a0_R
+        self._a1_R /= self._a0_R
+        self._a2_R /= self._a0_R
     # Applies the filter to all samples of a buffer
     def use(self, input_signal: np.array) -> np.array:
         # Normalize input to ±1.0
@@ -130,13 +139,13 @@ class Filter():
 
                 # Interpolate coefficients for cleaner parameter modulation
                 progress = (step + 1) / consts.INTERP_STEPS
-                b0_L = self._prev_b0_L + (self._b0_L - self._prev_b_L) * progress
+                b0_L = self._prev_b0_L + (self._b0_L - self._prev_b0_L) * progress
                 b1_L = self._prev_b1_L + (self._b1_L - self._prev_b1_L) * progress
                 b2_L = self._prev_b2_L + (self._b2_L - self._prev_b2_L) * progress
                 a1_L = self._prev_a1_L + (self._a1_L - self._prev_a1_L) * progress
                 a2_L = self._prev_a2_L + (self._a2_L - self._prev_a2_L) * progress
 
-                b0_R = self._prev_b0_R + (self._b0_R - self._prev_b_R) * progress
+                b0_R = self._prev_b0_R + (self._b0_R - self._prev_b0_R) * progress
                 b1_R = self._prev_b1_R + (self._b1_R - self._prev_b1_R) * progress
                 b2_R = self._prev_b2_R + (self._b2_R - self._prev_b2_R) * progress
                 a1_R = self._prev_a1_R + (self._a1_R - self._prev_a1_R) * progress
@@ -193,11 +202,11 @@ class Filter():
                                 self._b2_L * self._x2_L - 
                                 self._a1_L * self._y1_L - 
                                 self._a2_L * self._y2_L)
-                current_output_R = (b0_R * current_input_R + 
-                                b1_R * self._x1_R + 
-                                b2_R * self._x2_R - 
-                                a1_R * self._y1_R - 
-                                a2_R * self._y2_R)
+                current_output_R = (self._b0_R * current_input_R + 
+                                self._b1_R * self._x1_R + 
+                                self._b2_R * self._x2_R - 
+                                self._a1_R * self._y1_R - 
+                                self._a2_R * self._y2_R)
             
                 # Clamp output to prevent runaway
                 current_output_L = np.maximum(-1.0, np.minimum(1.0, current_output_L))

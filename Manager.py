@@ -79,7 +79,7 @@ class Manager:
         return self.synth._envelopes[0].getEnvelopeData()
     
     def _generate_filter_data(self):
-        [w, h] = self.synth._filter1_left.getFreqResponse()
+        [w, h] = self.synth._filter1.getFreqResponse()
         if consts.POLES == 4:
             np.square(h) # Account for cascaded filters
         return [w, h]
