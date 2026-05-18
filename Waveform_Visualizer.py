@@ -48,5 +48,4 @@ class Plot():
         plt.pause(0.001)  # Minimal pause to ensure draw completes
         
     def close(self):
-        """Close the visualization"""
         plt.close(self._fig)

@@ -4,6 +4,7 @@ import Waveform_Visualizer
 from lib import consts
 
 import time
+import mido
 import numpy as np
 
 class Manager:
@@ -21,14 +22,43 @@ class Manager:
 
     def start(self):
         self._is_running = True
-        
-        # Main loop
-        try:
-            while self._is_running:
-                self._update_visualization_if_needed()
-                time.sleep(0.016)
-        except KeyboardInterrupt:
-            pass
+        match self.synth._device_is_connected:
+
+            # Main loop
+            case True:
+                try:
+                    while self._is_running:
+                        self._update_visualization_if_needed()
+                        time.sleep(0.016)
+                except KeyboardInterrupt:
+                    pass
+            
+            # No controller connected, play some demo notes
+            case False:
+                self.synth.handleMessage(mido.Message('control_change', control=consts.CUTOFF_CC, value=127))
+                self.synth.handleMessage(mido.Message('control_change', control=consts.REVERB_CC, value=0))
+                self.synth.handleMessage(mido.Message('note_on', note=consts.A_440))
+                time.sleep(2)
+                self.synth.handleMessage(mido.Message('note_off', note=consts.A_440))
+                time.sleep(1)
+                self.synth.handleMessage(mido.Message('control_change', control=consts.CUTOFF_CC, value=64))
+                self.synth.handleMessage(mido.Message('control_change', control=consts.REVERB_CC, value=16))
+                self.synth.handleMessage(mido.Message('note_on', note=consts.A_440 - 5))
+                time.sleep(2)
+                self.synth.handleMessage(mido.Message('note_off', note=consts.A_440 - 5))
+                time.sleep(1)
+                self.synth.handleMessage(mido.Message('control_change', control=consts.CUTOFF_CC, value=48))
+                self.synth.handleMessage(mido.Message('control_change', control=consts.REVERB_CC, value=64))
+                self.synth.handleMessage(mido.Message('note_on', note=consts.A_440 - 9))
+                time.sleep(2)
+                self.synth.handleMessage(mido.Message('note_off', note=consts.A_440 - 9))
+                time.sleep(1)
+                self.synth.handleMessage(mido.Message('control_change', control=consts.CUTOFF_CC, value=24))
+                self.synth.handleMessage(mido.Message('control_change', control=consts.REVERB_CC, value=127))
+                self.synth.handleMessage(mido.Message('note_on', note=consts.A_440 - 12))
+                time.sleep(2)
+                self.synth.handleMessage(mido.Message('note_off', note=consts.A_440 - 12))
+                time.sleep(1)
 
         self.shutdown()
     
@@ -79,7 +109,7 @@ class Manager:
         return self.synth._envelopes[0].getEnvelopeData()
     
     def _generate_filter_data(self):
-        [w, h] = self.synth._filter1_left.getFreqResponse()
+        [w, h] = self.synth._filter1.getFreqResponse()
         if consts.POLES == 4:
             np.square(h) # Account for cascaded filters
         return [w, h]
