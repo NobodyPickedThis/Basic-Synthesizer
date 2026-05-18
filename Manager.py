@@ -11,7 +11,7 @@ class Manager:
     def __init__(self):
         # Components
         self.synth = Synth.Synth()
-        self.visualizer = Waveform_Visualizer.Plot()
+        #self.visualizer = Waveform_Visualizer.Plot()
 
         # Timing
         self._last_vis_update = 0
@@ -28,13 +28,14 @@ class Manager:
             case True:
                 try:
                     while self._is_running:
-                        self._update_visualization_if_needed()
+                        #self._update_visualization_if_needed()
                         time.sleep(0.016)
                 except KeyboardInterrupt:
                     pass
             
             # No controller connected, play some demo notes
             case False:
+                time.sleep(1)
                 self.synth.handleMessage(mido.Message('control_change', control=consts.CUTOFF_CC, value=127))
                 self.synth.handleMessage(mido.Message('control_change', control=consts.REVERB_CC, value=0))
                 self.synth.handleMessage(mido.Message('note_on', note=consts.A_440))
